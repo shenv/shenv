@@ -1,0 +1,53 @@
+#!/usr/bin/env bash
+# Summary: Show the current shell version
+set -e
+[ -n "$SHENV_DEBUG" ] && set -x
+
+if [ -z "$SHENV_VERSION" ]; then
+  SHENV_VERSION_FILE="$(shenv-version-file)"
+  SHENV_VERSION="$(shenv-version-file-read "$SHENV_VERSION_FILE" || true)"
+fi
+
+OLDIFS="$IFS"
+IFS=$'\n' scripts=(`shenv-hooks version-name`)
+IFS="$OLDIFS"
+for script in "${scripts[@]}"; do
+  source "$script"
+done
+
+if [ -z "$SHENV_VERSION" ] || [ "$SHENV_VERSION" = "system" ]; then
+  echo "system"
+  exit
+fi
+
+version_exists() {
+  local version="$1"
+  [ -d "${SHENV_ROOT}/versions/${version}" ]
+}
+
+versions=()
+OLDIFS="$IFS"
+{ IFS=:
+  any_not_installed=0
+  for version in ${SHENV_VERSION}; do
+    if version_exists "$version" || [ "$version" = "system" ]; then
+      versions=("${versions[@]}" "${version}")
+    elif version_exists "${version#shell-}"; then
+      versions=("${versions[@]}" "${version#shell-}")
+    else
+      echo "shenv: version \`$version' is not installed (set by $(shenv-version-origin))" >&2
+      any_not_installed=1
+    fi
+  done
+}
+IFS="$OLDIFS"
+
+OLDIFS="$IFS"
+{ IFS=:
+  echo "${versions[*]}"
+}
+IFS="$OLDIFS"
+
+if [ "$any_not_installed" = 1 ]; then
+  exit 1
+fi

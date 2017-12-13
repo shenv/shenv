@@ -1,0 +1,28 @@
+#!/usr/bin/env bash
+# Usage: shenv version-file [<dir>]
+# Summary: Detect the file that sets the current shenv version
+set -e
+[ -n "$SHENV_DEBUG" ] && set -x
+
+target_dir="$1"
+
+find_local_version_file() {
+  local root="$1"
+  while ! [[ "$root" =~ ^//[^/]*$ ]]; do
+    if [ -f "${root}/.shell-version" ]; then
+      echo "${root}/.shell-version"
+      return 0
+    fi
+    [ -n "$root" ] || break
+    root="${root%/*}"
+  done
+  return 1
+}
+
+if [ -n "$target_dir" ]; then
+  find_local_version_file "$target_dir"
+else
+  find_local_version_file "$SHENV_DIR" || {
+    [ "$SHENV_DIR" != "$PWD" ] && find_local_version_file "$PWD"
+  } || echo "${SHENV_ROOT}/version"
+fi

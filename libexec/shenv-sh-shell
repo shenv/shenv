@@ -1,0 +1,121 @@
+#!/usr/bin/env bash
+#
+# Summary: Set or show the shell-specific shell version
+#
+# Usage: shenv shell <version>...
+#        shenv shell -
+#        shenv shell --unset
+#
+# Sets a shell-specific shell version by setting the `SHENV_VERSION'
+# environment variable in your shell. This version overrides local
+# application-specific versions and the global version.
+#
+# <version> should be a string matching a shell version known to shenv.
+# The special version string `system' will use your default system shell.
+# Run `shenv versions' for a list of available shell versions.
+#
+# When `-` is passed instead of the version string, the previously set
+# version will be restored. With `--unset`, the `SHENV_VERSION`
+# environment variable gets unset, restoring the environment to the
+# state before the first `shenv shell` call.
+
+set -e
+[ -n "$SHENV_DEBUG" ] && set -x
+
+# Provide shenv completions
+if [ "$1" = "--complete" ]; then
+  echo --unset
+  echo system
+  exec shenv-versions --bare
+fi
+
+versions=("$@")
+shell="$(basename "${SHENV_SHELL:-$SHELL}")"
+
+if [ -z "$versions" ]; then
+  if [ -z "$SHENV_VERSION" ]; then
+    echo "shenv: no shell-specific version configured" >&2
+    exit 1
+  else
+    echo 'echo "$SHENV_VERSION"'
+    exit
+  fi
+fi
+
+if [ "$versions" = "--unset" ]; then
+  case "$shell" in
+  fish )
+    echo 'set -gu SHENV_VERSION_OLD "$SHENV_VERSION"'
+    echo "set -e SHENV_VERSION"
+    ;;
+  * )
+    echo 'SHENV_VERSION_OLD="$SHENV_VERSION"'
+    echo "unset SHENV_VERSION"
+    ;;
+  esac
+  exit
+fi
+
+if [ "$versions" = "-" ]; then
+  case "$shell" in
+  fish )
+    cat <<EOS
+if set -q SHENV_VERSION_OLD
+  if [ -n "\$SHENV_VERSION_OLD" ]
+    set SHENV_VERSION_OLD_ "\$SHENV_VERSION"
+    set -gx SHENV_VERSION "\$SHENV_VERSION_OLD"
+    set -gu SHENV_VERSION_OLD "\$SHENV_VERSION_OLD_"
+    set -e SHENV_VERSION_OLD_
+  else
+    set -gu SHENV_VERSION_OLD "\$SHENV_VERSION"
+    set -e SHENV_VERSION
+  end
+else
+  echo "shenv: SHENV_VERSION_OLD is not set" >&2
+  false
+end
+EOS
+    ;;
+  * )
+    cat <<EOS
+if [ -n "\${SHENV_VERSION_OLD+x}" ]; then
+  if [ -n "\$SHENV_VERSION_OLD" ]; then
+    SHENV_VERSION_OLD_="\$SHENV_VERSION"
+    export SHENV_VERSION="\$SHENV_VERSION_OLD"
+    SHENV_VERSION_OLD="\$SHENV_VERSION_OLD_"
+    unset SHENV_VERSION_OLD_
+  else
+    SHENV_VERSION_OLD="\$SHENV_VERSION"
+    unset SHENV_VERSION
+  fi
+else
+  echo "shenv: SHENV_VERSION_OLD is not set" >&2
+  false
+fi
+EOS
+    ;;
+  esac
+  exit
+fi
+
+# Make sure the specified version is installed.
+if shenv-prefix "${versions[@]}" >/dev/null; then
+  OLDIFS="$IFS"
+  IFS=: version="${versions[*]}"
+  IFS="$OLDIFS"
+  if [ "$version" != "$SHENV_VERSION" ]; then
+    case "$shell" in
+    fish )
+      echo 'set -gu SHENV_VERSION_OLD "$SHENV_VERSION"'
+      echo "set -gx SHENV_VERSION \"$version\""
+      ;;
+    * )
+      echo 'SHENV_VERSION_OLD="$SHENV_VERSION"'
+      echo "export SHENV_VERSION=\"${version}\""
+      ;;
+    esac
+  fi
+else
+  echo "false"
+  exit 1
+fi

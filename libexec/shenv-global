@@ -1,0 +1,41 @@
+#!/usr/bin/env bash
+#
+# Summary: Set or show the global shell version
+#
+# Usage: shenv global <version>
+#
+# Sets the global shell version. You can override the global version at
+# any time by setting a directory-specific version with `shenv local'
+# or by setting the `SHENV_VERSION' environment variable.
+#
+# <version> should be a string matching a shell version known to shenv.
+# The special version string `system' will use your default system shell.
+# Run `shenv versions' for a list of available shell versions.
+
+set -e
+[ -n "$SHENV_DEBUG" ] && set -x
+
+# Provide shenv completions
+if [ "$1" = "--complete" ]; then
+  echo system
+  exec shenv-versions --bare
+fi
+
+versions=("$@")
+SHENV_VERSION_FILE="${SHENV_ROOT}/version"
+
+if [ -n "$versions" ]; then
+  shenv-version-file-write "$SHENV_VERSION_FILE" "${versions[@]}"
+else
+  OLDIFS="$IFS"
+  IFS=: versions=($(
+    shenv-version-file-read "$SHENV_VERSION_FILE" ||
+    shenv-version-file-read "${SHENV_ROOT}/global" ||
+    shenv-version-file-read "${SHENV_ROOT}/default" ||
+    echo system
+  ))
+  IFS="$OLDIFS"
+  for version in "${versions[@]}"; do
+    echo "$version"
+  done
+fi

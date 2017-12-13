@@ -1,0 +1,1 @@
+install_package "shell-3.6.2" "http://shell.org/ftp/shell/3.6.2/shell-3.6.2.tar.gz"

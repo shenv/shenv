@@ -1,0 +1,22 @@
+#!/usr/bin/env bash
+# Summary: List existing shenv shims
+# Usage: shenv shims [--short]
+
+set -e
+[ -n "$SHENV_DEBUG" ] && set -x
+
+# Provide shenv completions
+if [ "$1" = "--complete" ]; then
+  echo --short
+  exit
+fi
+
+shopt -s nullglob
+
+for command in "${SHENV_ROOT}/shims/"*; do
+  if [ "$1" = "--short" ]; then
+    echo "${command##*/}"
+  else
+    echo "$command"
+  fi
+done | sort

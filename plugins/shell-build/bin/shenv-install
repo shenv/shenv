@@ -1,0 +1,283 @@
+#!/usr/bin/env bash
+#
+# Summary: Install a shell version using shell-build
+#
+# Usage: shenv install [-f] [-kvp] <version>
+#        shenv install [-f] [-kvp] <definition-file>
+#        shenv install -l|--list
+#        shenv install --version
+#
+#   -l/--list          List all available versions
+#   -f/--force         Install even if the version appears to be installed already
+#   -s/--skip-existing Skip if the version appears to be installed already
+#
+#   shell-build options:
+#
+#   -k/--keep          Keep source tree in $SHENV_BUILD_ROOT after installation
+#                      (defaults to $SHENV_ROOT/sources)
+#   -p/--patch         Apply a patch from stdin before building
+#   -v/--verbose       Verbose mode: print compilation status to stdout
+#   --version          Show version of shell-build
+#   -g/--debug         Build a debug version
+#
+# For detailed information on installing shell versions with
+# shell-build, including a list of environment variables for adjusting
+# compilation, see: https://github.com/shenv/shenv#readme
+#
+set -e
+[ -n "$SHENV_DEBUG" ] && set -x
+
+# Add `share/shell-build/` directory from each shenv plugin to the list of
+# paths where build definitions are looked up.
+shopt -s nullglob
+for plugin_path in "$SHENV_ROOT"/plugins/*/share/shell-build; do
+  SHELL_BUILD_DEFINITIONS="${SHELL_BUILD_DEFINITIONS}:${plugin_path}"
+done
+export SHELL_BUILD_DEFINITIONS
+shopt -u nullglob
+
+# Provide shenv completions
+if [ "$1" = "--complete" ]; then
+  echo --list
+  echo --force
+  echo --skip-existing
+  echo --keep
+  echo --patch
+  echo --verbose
+  echo --version
+  echo --debug
+  exec shell-build --definitions
+fi
+
+# Load shared library functions
+eval "$(shell-build --lib)"
+
+usage() {
+  shenv-help install 2>/dev/null
+  [ -z "$1" ] || exit "$1"
+}
+
+definitions() {
+  local query="$1"
+  shell-build --definitions | $(type -p ggrep grep | head -1) -F "$query" || true
+}
+
+indent() {
+  sed 's/^/  /'
+}
+
+unset FORCE
+unset SKIP_EXISTING
+unset KEEP
+unset VERBOSE
+unset HAS_PATCH
+unset DEBUG
+
+parse_options "$@"
+for option in "${OPTIONS[@]}"; do
+  case "$option" in
+  "h" | "help" )
+    usage 0
+    ;;
+  "l" | "list" )
+    echo "Available versions:"
+    definitions | indent
+    exit
+    ;;
+  "f" | "force" )
+    FORCE=true
+    ;;
+  "s" | "skip-existing" )
+    SKIP_EXISTING=true
+    ;;
+  "k" | "keep" )
+    [ -n "${SHENV_BUILD_ROOT}" ] || SHENV_BUILD_ROOT="${SHENV_ROOT}/sources"
+    ;;
+  "v" | "verbose" )
+    VERBOSE="-v"
+    ;;
+  "p" | "patch" )
+    HAS_PATCH="-p"
+    ;;
+  "g" | "debug" )
+    DEBUG="-g"
+    ;;
+  "version" )
+    exec shell-build --version
+    ;;
+  * )
+    usage 1 >&2
+    ;;
+  esac
+done
+
+[ "${#ARGUMENTS[@]}" -le 1 ] || usage 1 >&2
+
+unset VERSION_NAME
+
+# The first argument contains the definition to install. If the
+# argument is missing, try to install whatever local app-specific
+# version is specified by shenv. Show usage instructions if a local
+# version is not specified.
+DEFINITION="${ARGUMENTS[0]}"
+[ -n "$DEFINITION" ] || DEFINITION="$(shenv-local 2>/dev/null || true)"
+[ -n "$DEFINITION" ] || usage 1 >&2
+
+# Define `before_install` and `after_install` functions that allow
+# plugin hooks to register a string of code for execution before or
+# after the installation process.
+declare -a before_hooks after_hooks
+
+before_install() {
+  local hook="$1"
+  before_hooks["${#before_hooks[@]}"]="$hook"
+}
+
+after_install() {
+  local hook="$1"
+  after_hooks["${#after_hooks[@]}"]="$hook"
+}
+
+OLDIFS="$IFS"
+IFS=$'\n' scripts=(`shenv-hooks install`)
+IFS="$OLDIFS"
+for script in "${scripts[@]}"; do source "$script"; done
+
+
+# Set VERSION_NAME from $DEFINITION, if it is not already set. Then
+# compute the installation prefix.
+[ -n "$VERSION_NAME" ] || VERSION_NAME="${DEFINITION##*/}"
+[ -n "$DEBUG" ] && VERSION_NAME="${VERSION_NAME}-debug"
+PREFIX="${SHENV_ROOT}/versions/${VERSION_NAME}"
+
+[ -d "${PREFIX}" ] && PREFIX_EXISTS=1
+
+# If the installation prefix exists, prompt for confirmation unless
+# the --force option was specified.
+if [ -d "${PREFIX}/bin" ]; then
+  if [ -z "$FORCE" ] && [ -z "$SKIP_EXISTING" ]; then
+    echo "shenv: $PREFIX already exists" >&2
+    read -p "continue with installation? (y/N) "
+
+    case "$REPLY" in
+    y* | Y* ) ;;
+    * ) exit 1 ;;
+    esac
+  elif [ -n "$SKIP_EXISTING" ]; then
+    # Since we know the shell version is already installed, and are opting to
+    # not force installation of existing versions, we just `exit 0` here to
+    # leave things happy
+    exit 0
+  fi
+fi
+
+# If SHENV_BUILD_ROOT is set, always pass keep options to shell-build.
+if [ -n "${SHENV_BUILD_ROOT}" ]; then
+  export SHELL_BUILD_BUILD_PATH="${SHENV_BUILD_ROOT}/${VERSION_NAME}"
+  KEEP="-k"
+fi
+
+# Set SHELL_BUILD_CACHE_PATH to $SHENV_ROOT/cache, if the directory
+# exists and the variable is not already set.
+if [ -z "${SHELL_BUILD_CACHE_PATH}" ] && [ -d "${SHENV_ROOT}/cache" ]; then
+  export SHELL_BUILD_CACHE_PATH="${SHENV_ROOT}/cache"
+fi
+
+if [ -z "${SHENV_BOOTSTRAP_VERSION}" ]; then
+  case "${VERSION_NAME}" in
+  [23]"."* )
+    # Default SHENV_VERSION to the friendly shell version. (The
+    # Cshell installer requires an existing shell installation to run. An
+    # unsatisfied local .shell-version file can cause the installer to
+    # fail.)
+    for version_info in "${VERSION_NAME%-dev}" "${VERSION_NAME%.*}" "${VERSION_NAME%%.*}"; do
+      # Anaconda's `curl` doesn't work on platform where `/etc/pki/tls/certs/ca-bundle.crt` isn't available (e.g. Debian)
+      for version in $(shenv-whence "shell${version_info}" 2>/dev/null || true); do
+        if [[ "${version}" != "anaconda"* ]] && [[ "${version}" != "miniconda"* ]]; then
+          SHENV_BOOTSTRAP_VERSION="${version}"
+          break 2
+        fi
+      done
+    done
+    ;;
+  "pypy"*"-dev" | "pypy"*"-src" )
+    # PyPy/PyPy3 requires existing shell 2.7 to build
+    if [ -n "${SHENV_RSHELL_VERSION}" ]; then
+      SHENV_BOOTSTRAP_VERSION="${SHENV_RSHELL_VERSION}"
+    else
+      for version in $(shenv-versions --bare | sort -r); do
+        if [[ "${version}" == "2.7"* ]]; then
+          SHENV_BOOTSTRAP_VERSION="$version"
+          break
+        fi
+      done
+    fi
+    if [ -n "$SHENV_BOOTSTRAP_VERSION" ]; then
+      for dep in curses genc pycparser; do
+        if ! SHENV_VERSION="$SHENV_BOOTSTRAP_VERSION" shenv-exec shell -c "import ${dep}" 1>/dev/null 2>&1; then
+          echo "shenv-install: $VERSION_NAME: PyPy requires \`${dep}' in $SHENV_BOOTSTRAP_VERSION to build from source." >&2
+          exit 1
+        fi
+      done
+    else
+      echo "shenv-install: $VERSION_NAME: PyPy requires shell 2.7 to build from source." >&2
+      exit 1
+    fi
+    ;;
+  esac
+fi
+
+if [ -n "${SHENV_BOOTSTRAP_VERSION}" ]; then
+  export SHENV_VERSION="${SHENV_BOOTSTRAP_VERSION}"
+fi
+
+# Execute `before_install` hooks.
+for hook in "${before_hooks[@]}"; do eval "$hook"; done
+
+# Plan cleanup on unsuccessful installation.
+cleanup() {
+  [ -z "${PREFIX_EXISTS}" ] && rm -rf "$PREFIX"
+}
+
+trap cleanup SIGINT
+
+# Invoke `shell-build` and record the exit status in $STATUS.
+STATUS=0
+shell-build $KEEP $VERBOSE $HAS_PATCH $DEBUG "$DEFINITION" "$PREFIX" || STATUS="$?"
+
+# Display a more helpful message if the definition wasn't found.
+if [ "$STATUS" == "2" ]; then
+  { candidates="$(definitions "$DEFINITION")"
+    here="$(dirname "${0%/*}")/../.."
+    if [ -n "$candidates" ]; then
+      echo
+      echo "The following versions contain \`$DEFINITION' in the name:"
+      echo "$candidates" | indent
+    fi
+    echo
+    echo "See all available versions with \`shenv install --list'."
+    echo
+    echo -n "If the version you need is missing, try upgrading shenv"
+    if [ "$here" != "${here#$(brew --prefix 2>/dev/null)}" ]; then
+      printf ":\n\n"
+      echo "  brew update && brew upgrade shenv"
+    elif [ -d "${here}/.git" ]; then
+      printf ":\n\n"
+      echo "  cd ${here} && git pull && cd -"
+    else
+      printf ".\n"
+    fi
+  } >&2
+fi
+
+# Execute `after_install` hooks.
+for hook in "${after_hooks[@]}"; do eval "$hook"; done
+
+# Run `shenv-rehash` after a successful installation.
+if [ "$STATUS" == "0" ]; then
+  shenv-rehash
+else
+  cleanup
+fi
+
+exit "$STATUS"

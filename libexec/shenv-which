@@ -1,0 +1,89 @@
+#!/usr/bin/env bash
+#
+# Summary: Display the full path to an executable
+#
+# Usage: shenv which <command>
+#
+# Displays the full path to the executable that shenv will invoke when
+# you run the given command.
+
+set -e
+[ -n "$SHENV_DEBUG" ] && set -x
+
+# Provide shenv completions
+if [ "$1" = "--complete" ]; then
+  exec shenv-shims --short
+fi
+
+remove_from_path() {
+  local path_to_remove="$1"
+  local path_before
+  local result=":${PATH//\~/$HOME}:"
+  while [ "$path_before" != "$result" ]; do
+    path_before="$result"
+    result="${result//:$path_to_remove:/:}"
+  done
+  result="${result%:}"
+  echo "${result#:}"
+}
+
+SHENV_COMMAND="$1"
+
+if [ -z "$SHENV_COMMAND" ]; then
+  shenv-help --usage which >&2
+  exit 1
+fi
+
+OLDIFS="$IFS"
+IFS=: versions=(${SHENV_VERSION:-$(shenv-version-name)})
+IFS="$OLDIFS"
+
+for version in "${versions[@]}"; do
+  if [ "$version" = "system" ]; then
+    PATH="$(remove_from_path "${SHENV_ROOT}/shims")"
+    SHENV_COMMAND_PATH="$(command -v "$SHENV_COMMAND" || true)"
+  else
+    SHENV_COMMAND_PATH="${SHENV_ROOT}/versions/${version}/bin/${SHENV_COMMAND}"
+  fi
+  if [ -x "$SHENV_COMMAND_PATH" ]; then
+    break
+  fi
+done
+
+OLDIFS="$IFS"
+IFS=$'\n' scripts=(`shenv-hooks which`)
+IFS="$OLDIFS"
+for script in "${scripts[@]}"; do
+  source "$script"
+done
+
+if [ -x "$SHENV_COMMAND_PATH" ]; then
+  echo "$SHENV_COMMAND_PATH"
+else
+  any_not_installed=0
+  for version in "${versions[@]}"; do
+    if [ "$version" = "system" ]; then
+      continue
+    fi
+    if ! [ -d "${SHENV_ROOT}/versions/${version}" ]; then
+      echo "shenv: version \`$version' is not installed (set by $(shenv-version-origin))" >&2
+      any_not_installed=1
+    fi
+  done
+  if [ "$any_not_installed" = 1 ]; then
+    exit 1
+  fi
+
+  echo "shenv: $SHENV_COMMAND: command not found" >&2
+
+  versions="$(shenv-whence "$SHENV_COMMAND" || true)"
+  if [ -n "$versions" ]; then
+    { echo
+      echo "The \`$1' command exists in these shell versions:"
+      echo "$versions" | sed 's/^/  /g'
+      echo
+    } >&2
+  fi
+
+  exit 127
+fi

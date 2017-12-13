@@ -1,0 +1,137 @@
+#!/usr/bin/env bash
+set -e
+unset CDPATH
+
+if [ "$1" = "--debug" ]; then
+  export SHENV_DEBUG=1
+  shift
+fi
+
+if [ -n "$SHENV_DEBUG" ]; then
+  export PS4='+ [${BASH_SOURCE##*/}:${LINENO}] '
+  set -x
+fi
+
+abort() {
+  { if [ "$#" -eq 0 ]; then cat -
+    else echo "shenv: $*"
+    fi
+  } >&2
+  exit 1
+}
+
+if enable -f "${BASH_SOURCE%/*}"/../libexec/shenv-realpath.dylib realpath 2>/dev/null; then
+  abs_dirname() {
+    local path="$(realpath "$1")"
+    echo "${path%/*}"
+  }
+else
+  [ -z "$SHENV_NATIVE_EXT" ] || abort "failed to load \`realpath' builtin"
+
+  READLINK=$(type -p greadlink readlink | head -1)
+  [ -n "$READLINK" ] || abort "cannot find readlink - are you missing GNU coreutils?"
+
+  resolve_link() {
+    $READLINK "$1"
+  }
+
+  abs_dirname() {
+    local path="$1"
+
+    # Use a subshell to avoid changing the current path
+    (
+    while [ -n "$path" ]; do
+      cd "${path%/*}"
+      local name="${path##*/}"
+      path="$(resolve_link "$name" || true)"
+    done
+
+    pwd
+    )
+  }
+fi
+
+if [ -z "${SHENV_ROOT}" ]; then
+  SHENV_ROOT="${HOME}/.shenv"
+else
+  SHENV_ROOT="${SHENV_ROOT%/}"
+fi
+export SHENV_ROOT
+
+# Transfer SHENV_FILE_ARG (from shims) into SHENV_DIR.
+if [ -z "${SHENV_DIR}" ]; then
+  if [ -n "${SHENV_FILE_ARG}" ]; then
+    if [ -L "${SHENV_FILE_ARG}" ]; then
+      SHENV_DIR="$(abs_dirname "${SHENV_FILE_ARG}")"
+    else
+      SHENV_DIR="${SHENV_FILE_ARG%/*}"
+    fi
+    export SHENV_DIR
+    unset SHENV_FILE_ARG
+  fi
+fi
+
+if [ -z "${SHENV_DIR}" ]; then
+  SHENV_DIR="$PWD"
+fi
+
+if [ ! -d "$SHENV_DIR" ] || [ ! -e "$SHENV_DIR" ]; then
+  abort "cannot change working directory to \`$SHENV_DIR'"
+fi
+
+SHENV_DIR=$(cd "$SHENV_DIR" && echo "$PWD")
+export SHENV_DIR
+
+
+shopt -s nullglob
+
+bin_path="$(abs_dirname "$0")"
+for plugin_bin in "${SHENV_ROOT}/plugins/"*/bin; do
+  PATH="${plugin_bin}:${PATH}"
+done
+export PATH="${bin_path}:${PATH}"
+
+SHENV_HOOK_PATH="${SHENV_HOOK_PATH}:${SHENV_ROOT}/shenv.d"
+if [ "${bin_path%/*}" != "$SHENV_ROOT" ]; then
+  # Add shenv's own `shenv.d` unless shenv was cloned to SHENV_ROOT
+  SHENV_HOOK_PATH="${SHENV_HOOK_PATH}:${bin_path%/*}/shenv.d"
+fi
+SHENV_HOOK_PATH="${SHENV_HOOK_PATH}:/usr/local/etc/shenv.d:/etc/shenv.d:/usr/lib/shenv/hooks"
+for plugin_hook in "${SHENV_ROOT}/plugins/"*/etc/shenv.d; do
+  SHENV_HOOK_PATH="${SHENV_HOOK_PATH}:${plugin_hook}"
+done
+SHENV_HOOK_PATH="${SHENV_HOOK_PATH#:}"
+export SHENV_HOOK_PATH
+
+shopt -u nullglob
+
+
+command="$1"
+case "$command" in
+"" )
+  { shenv---version
+    shenv-help
+  } | abort
+  ;;
+-v | --version )
+  exec shenv---version
+  ;;
+-h | --help )
+  exec shenv-help
+  ;;
+* )
+  command_path="$(command -v "shenv-$command" || true)"
+  [ -n "$command_path" ] || abort "no such command \`$command'"
+
+  shift 1
+  if [ "$1" = --help ]; then
+    if [[ "$command" == "sh-"* ]]; then
+      echo "shenv help \"$command\""
+    else
+      exec shenv-help "$command"
+    fi
+  else
+    exec "$command_path" "$@"
+  fi
+  ;;
+esac

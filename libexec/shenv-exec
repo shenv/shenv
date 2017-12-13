@@ -1,0 +1,47 @@
+#!/usr/bin/env bash
+#
+# Summary: Run an executable with the selected shell version
+#
+# Usage: shenv exec <command> [arg1 arg2...]
+#
+# Runs an executable by first preparing PATH so that the selected shell
+# version's `bin' directory is at the front.
+#
+# For example, if the currently selected shell version is 2.7.6:
+#   shenv exec pip install -rrequirements.txt
+#
+# is equivalent to:
+#   PATH="$SHENV_ROOT/versions/2.7.6/bin:$PATH" pip install -rrequirements.txt
+
+set -e
+[ -n "$SHENV_DEBUG" ] && set -x
+
+# Provide shenv completions
+if [ "$1" = "--complete" ]; then
+  exec shenv-shims --short
+fi
+
+SHENV_VERSION="$(shenv-version-name)"
+SHENV_COMMAND="$1"
+
+if [ -z "$SHENV_COMMAND" ]; then
+  shenv-help --usage exec >&2
+  exit 1
+fi
+
+export SHENV_VERSION
+SHENV_COMMAND_PATH="$(shenv-which "$SHENV_COMMAND")"
+SHENV_BIN_PATH="${SHENV_COMMAND_PATH%/*}"
+
+OLDIFS="$IFS"
+IFS=$'\n' scripts=(`shenv-hooks exec`)
+IFS="$OLDIFS"
+for script in "${scripts[@]}"; do
+  source "$script"
+done
+
+shift 1
+# Cshell's `sys.executable` requires the `SHENV_BIN_PATH` to be at the top of the `PATH`.
+# https://github.com/shenv/shenv/issues/98
+export PATH="${SHENV_BIN_PATH}:${PATH}"
+exec -a "$SHENV_COMMAND" "$SHENV_COMMAND_PATH" "$@"

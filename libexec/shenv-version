@@ -1,0 +1,20 @@
+#!/usr/bin/env bash
+# Summary: Show the current shell version and its origin
+#
+# Shows the currently selected shell version and how it was
+# selected. To obtain only the version string, use `shenv
+# version-name'.
+
+set -e
+[ -n "$SHENV_DEBUG" ] && set -x
+
+exitcode=0
+OLDIFS="$IFS"
+IFS=: SHENV_VERSION_NAMES=($(shenv-version-name)) || exitcode=$?
+IFS="$OLDIFS"
+
+for SHENV_VERSION_NAME in "${SHENV_VERSION_NAMES[@]}"; do
+  echo "$SHENV_VERSION_NAME (set by $(shenv-version-origin))"
+done
+
+exit $exitcode

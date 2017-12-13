@@ -1,0 +1,10 @@
+/shims
+/version
+/versions
+/sources
+/cache
+/libexec/*.dylib
+/src/Makefile
+/src/*.o
+/bats/
+/default-packages
