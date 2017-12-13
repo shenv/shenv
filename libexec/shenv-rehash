@@ -46,7 +46,7 @@ set -e
 [ -n "\$SHENV_DEBUG" ] && set -x
 
 program="\${0##*/}"
-if [[ "\$program" = "shell"* ]]; then
+if [[ "\$program" = *"sh"* ]]; then
   for arg; do
     case "\$arg" in
     -c* | -- ) break ;;

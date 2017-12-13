@@ -1,6 +1,6 @@
 # Simple Shell Version Management: shenv
 
-[![Join the chat at https://gitter.im/Pawamoy/shenv](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/Pawamoy/shenv?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
+[![Join the chat at https://gitter.im/shenv/shenv](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/shenv/shenv?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 
 [![Build Status](https://travis-ci.org/shenv/shenv.svg?branch=master)](https://travis-ci.org/shenv/shenv)
 
@@ -10,8 +10,6 @@ tools that do one thing well.
 
 This project was forked from [pyenv](https://github.com/pyenv/pyenv)
 and modified for shell.
-
-<img src="https://i.gyazo.com/699a58927b77e46e71cd674c7fc7a78d.png" width="735" height="490" />
 
 
 ### shenv _does..._
