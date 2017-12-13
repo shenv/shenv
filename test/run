@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+#!/bin/bash
 set -e
 
 if [ -n "$SHENV_NATIVE_EXT" ]; then

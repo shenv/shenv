@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+#!/bin/bash
 # Summary: List hook scripts for a given shenv command
 # Usage: shenv hooks <command>
 

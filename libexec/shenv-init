@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+#!/bin/bash
 # Summary: Configure the shell environment for shenv
 # Usage: eval "$(shenv init - [--no-rehash] [<shell>])"
 

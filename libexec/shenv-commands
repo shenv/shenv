@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+#!/bin/bash
 # Summary: List all available shenv commands
 # Usage: shenv commands [--sh|--no-sh]
 

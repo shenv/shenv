@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+#!/bin/bash
 # Usage: shenv version-file [<dir>]
 # Summary: Detect the file that sets the current shenv version
 set -e

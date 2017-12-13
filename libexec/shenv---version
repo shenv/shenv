@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+#!/bin/bash
 # Summary: Display the version of shenv
 #
 # Displays the version number of this shenv release, including the

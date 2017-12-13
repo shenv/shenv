@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+#!/bin/bash
 # Usage: shenv completions <command> [arg1 arg2...]
 
 set -e

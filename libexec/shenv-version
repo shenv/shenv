@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+#!/bin/bash
 # Summary: Show the current shell version and its origin
 #
 # Shows the currently selected shell version and how it was

@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+#!/bin/bash
 #
 # Usage: shell-build [-kpv] <definition> <prefix>
 #        shell-build --definitions

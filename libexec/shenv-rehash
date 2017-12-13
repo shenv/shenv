@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+#!/bin/bash
 # Summary: Rehash shenv shims (run this after installing executables)
 
 set -e
@@ -41,7 +41,7 @@ remove_prototype_shim() {
 # serves as a locking mechanism.
 create_prototype_shim() {
   cat > "$PROTOTYPE_SHIM_PATH" <<SH
-#!/usr/bin/env bash
+#!/bin/bash
 set -e
 [ -n "\$SHENV_DEBUG" ] && set -x
 

@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+#!/bin/bash
 # Usage: shenv echo [-F<char>] VAR
 
 if [[ $1 == -F* ]]; then

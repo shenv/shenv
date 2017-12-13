@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+#!/bin/bash
 # Summary: Show the current shell version
 set -e
 [ -n "$SHENV_DEBUG" ] && set -x

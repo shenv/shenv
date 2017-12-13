@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+#!/bin/bash
 # Summary: List all shell versions that contain the given executable
 # Usage: shenv whence [--path] <command>
 

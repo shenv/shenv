@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+#!/bin/bash
 # Summary: List existing shenv shims
 # Usage: shenv shims [--short]
 

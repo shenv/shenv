@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+#!/bin/bash
 # Summary: List all shell versions available to shenv
 # Usage: shenv versions [--bare] [--skip-aliases]
 #

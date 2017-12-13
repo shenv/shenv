@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+#!/bin/bash
 # Usage: shenv version-file-read <file>
 set -e
 [ -n "$SHENV_DEBUG" ] && set -x
