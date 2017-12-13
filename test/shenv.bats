@@ -57,8 +57,8 @@ load test_helper
   run shenv echo -F: "PATH"
   assert_success
   assert_line 0 "${BATS_TEST_DIRNAME%/*}/libexec"
-  assert_line 1 "${SHENV_ROOT}/plugins/shell-build/bin"
-  assert_line 2 "${SHENV_ROOT}/plugins/shenv-each/bin"
+  assert_line 1 "${SHENV_ROOT}/plugins/shenv-each/bin"
+  assert_line 2 "${SHENV_ROOT}/plugins/shell-build/bin"
 }
 
 @test "SHENV_HOOK_PATH preserves value from environment" {
