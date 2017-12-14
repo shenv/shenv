@@ -1,7 +1,6 @@
 # Simple Shell Version Management: shenv
 
 [![Join the chat at https://gitter.im/shenv/shenv](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/shenv/shenv?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
-
 [![Build Status](https://travis-ci.org/shenv/shenv.svg?branch=master)](https://travis-ci.org/shenv/shenv)
 
 shenv lets you easily switch between multiple versions of shell. It's
@@ -9,7 +8,8 @@ simple, unobtrusive, and follows the UNIX tradition of single-purpose
 tools that do one thing well.
 
 This project was forked from [pyenv](https://github.com/pyenv/pyenv)
-and modified for shell.
+(which itself is a fork of [rbenv](https://github.com/rbenv/rbenv))
+and modified for the shell.
 
 
 ### shenv _does..._
