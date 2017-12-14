@@ -6,8 +6,8 @@ NUM_DEFINITIONS="$(find "$BATS_TEST_DIRNAME"/../share/shell-build -maxdepth 1 -t
 @test "list built-in definitions" {
   run shell-build --definitions
   assert_success
-  assert_output_contains "2.7.8"
-  assert_output_contains "jython-2.5.3"
+  assert_output_contains "bash-4.4"
+  assert_output_contains "fish-2.7.0"
   assert [ "${#lines[*]}" -eq "$NUM_DEFINITIONS" ]
 }
 

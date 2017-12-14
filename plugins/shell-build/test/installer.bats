@@ -13,8 +13,8 @@ load test_helper
   assert [ -x bin/shenv-install ]
   assert [ -x bin/shenv-uninstall ]
 
-  assert [ -e share/shell-build/2.7.2 ]
-  assert [ -e share/shell-build/pypy-2.0 ]
+  assert [ -e share/shell-build/bash-4.4 ]
+  assert [ -e share/shell-build/fish-2.7.0 ]
 }
 
 @test "build definitions don't have the executable bit" {
@@ -22,24 +22,21 @@ load test_helper
   PREFIX="${PWD}/usr" run "${BATS_TEST_DIRNAME}/../install.sh"
   assert_success ""
 
-  run $BASH -c 'ls -l usr/share/shell-build | tail -2 | cut -c1-10'
-  assert_output <<OUT
--rw-r--r--
--rw-r--r--
-OUT
+  run $BASH -c 'stat -c %A usr/share/shell-build/*-* | uniq'
+  assert_output '-rw-r--r--'
 }
 
 @test "overwrites old installation" {
   cd "$TMP"
   mkdir -p bin share/shell-build
   touch bin/shell-build
-  touch share/shell-build/2.7.2
+  touch share/shell-build/bash-4.4
 
   PREFIX="$PWD" run "${BATS_TEST_DIRNAME}/../install.sh"
   assert_success ""
 
   assert [ -x bin/shell-build ]
-  run grep "install_package" share/shell-build/2.7.2
+  run grep "install_package" share/shell-build/bash-4.4
   assert_success
 }
 
