@@ -5,6 +5,7 @@ load test_helper
 @test "not enough arguments for shell-build" {
   # use empty inline definition so nothing gets built anyway
   local definition="${TMP}/build-definition"
+  mkdir -p "${TMP}" &>/dev/null
   echo '' > "$definition"
 
   run shell-build "$definition"
@@ -15,6 +16,7 @@ load test_helper
 @test "extra arguments for shell-build" {
   # use empty inline definition so nothing gets built anyway
   local definition="${TMP}/build-definition"
+  mkdir -p "${TMP}" &>/dev/null
   echo '' > "$definition"
 
   run shell-build "$definition" "${TMP}/install" ""
