@@ -404,7 +404,7 @@ OUT
 
   MAKE=gmake stub_make_install
 
-  MAKE= install_fixture definitions/vanilla-shell
+  MAKE= install_fixture definitions/vanilla-python
   assert_success
 
   unstub gmake
@@ -421,7 +421,7 @@ OUT
 
   stub_make_install
 
-  MAKE= install_fixture definitions/vanilla-shell
+  MAKE= install_fixture definitions/vanilla-python
   assert_success
 
   unstub uname
@@ -437,7 +437,7 @@ OUT
 
   stub_make_install
 
-  MAKE= install_fixture definitions/vanilla-shell
+  MAKE= install_fixture definitions/vanilla-python
   assert_success
 
   unstub uname
