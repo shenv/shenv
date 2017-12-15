@@ -366,6 +366,10 @@ http_get_wget() {
   wget -nv ${WGET_OPTS} -O "${2:--}" "$1"
 }
 
+extract_cpio_gz() {
+  gzip -cd "$1" | cpio -idmv
+}
+
 fetch_tarball() {
   local package_name="$1"
   local package_url="$2"
@@ -383,6 +387,7 @@ fetch_tarball() {
     fi
   fi
 
+  local tar_command="tar"
   local tar_args="xzf"
   local package_filename="${package_name}.tar.gz"
 
@@ -402,6 +407,24 @@ fetch_tarball() {
      tar_args="${tar_args/z/J}"
    fi
 
+   if [ "$package_url" != "${package_url%cpgz}" ]; then
+     if ! type -p cpio >/dev/null; then
+      echo "warning: cpio not found; consider installing \`cpio\` package" >&4
+     fi
+     package_filename="${package_filename%.gz}.cpgz"
+     tar_command="extract_cpio_gz"
+     tar_args=""
+   fi
+
+   if [ "$package_url" != "${package_url%cpio.gz}" ]; then
+     if ! type -p cpio >/dev/null; then
+      echo "warning: cpio not found; consider installing \`cpio\` package" >&4
+     fi
+     package_filename="${package_filename%.tar.gz}.cpio.gz"
+     tar_command="extract_cpio_gz"
+     tar_args=""
+   fi
+
   if ! reuse_existing_tarball "$package_filename" "$checksum"; then
     local tarball_filename=$(basename $package_url)
     echo "Downloading ${tarball_filename}..." >&2
@@ -410,7 +433,7 @@ fetch_tarball() {
     download_tarball "$package_url" "$package_filename" "$checksum"
   fi
 
-  { if tar $tar_args "$package_filename"; then
+  { if $tar_command $tar_args "$package_filename"; then
       if [ -z "$KEEP_BUILD_PATH" ]; then
         rm -f "$package_filename"
       else
@@ -802,6 +825,25 @@ build_package_autoconf() {
   } >&4 2>&1
 }
 
+build_package_build_script() {
+  local package_name="$1"
+  local package_var_name="$(capitalize "${package_name%%-*}")"
+  local PACKAGE_BUILD_SCRIPT="${package_var_name}_BUILD_SCRIPT"
+  { chmod +x ${!PACKAGE_BUILD_SCRIPT:-./Build.sh}
+    ${!PACKAGE_BUILD_SCRIPT:-./Build.sh}
+  } >&4 2>&1
+}
+
+build_package_bin_install() {
+  local package_name="$1"
+  local package_var_name="$(capitalize "${package_name%%-*}")"
+  local PACKAGE_BIN="${package_var_name}_BIN"
+  { mkdir -p "${PREFIX_PATH}/bin"
+    cp ${!PACKAGE_BIN:-${package_name%%-*}} "${PREFIX_PATH}/bin"
+    chmod +x "${PREFIX_PATH}/bin/mksh"
+  }
+}
+
 build_package_ruby() {
   local package_name="$1"
 
@@ -809,10 +851,10 @@ build_package_ruby() {
   } >&4 2>&1
 }
 
-build_package_shell() {
+build_package_python() {
   local package_name="$1"
 
-  { "$SHELL_BIN" setup.py install
+  { "$PYTHON_BIN" setup.py install
   } >&4 2>&1
 }
 
@@ -953,8 +995,8 @@ fix_jython_shebangs() {
     "#!"*"/bin/jython" )
       sed -i.bak "1 s:.*:#\!${PREFIX_PATH}\/bin\/jython:" "${file}"
       ;;
-    "#!"*"/bin/shell2.7"* )
-      sed -i.bak "1 s:.*:#\!\/usr\/bin\/env shell:" "${file}"
+    "#!"*"/bin/python2.7"* )
+      sed -i.bak "1 s:.*:#\!\/usr\/bin\/env python:" "${file}"
       ;;
     esac
     rm -f "${file}.bak"
@@ -975,19 +1017,19 @@ build_package_pyston() {
   ( cd "${PREFIX_PATH}/" && ./pyston virtualenv/virtualenv.py . )
 }
 
-build_package_ironshell() {
+build_package_ironpython() {
   mkdir -p "${PREFIX_PATH}/bin"
   cp -fR . "${PREFIX_PATH}/bin"
   chmod +x "${PREFIX_PATH}/bin/"*.exe
-  ( cd "${PREFIX_PATH}/bin" && ln -fs ipy.exe shell )
+  ( cd "${PREFIX_PATH}/bin" && ln -fs ipy.exe python )
 }
 
-build_package_ironshell_builder() {
+build_package_ironpython_builder() {
   xbuild Build.proj /t:Stage "/p:Mono=true;BaseConfiguration=Release" >&4 2>&1
-  ( cd "Stage/Release/Ironshell-"* && build_package_ironshell )
+  ( cd "Stage/Release/IronPython-"* && build_package_ironpython )
 }
 
-build_package_microshell() {
+build_package_micropython() {
   if [ "${MAKEOPTS+defined}" ]; then
     MAKE_OPTS="$MAKEOPTS"
   elif [ -z "${MAKE_OPTS+defined}" ]; then
@@ -995,10 +1037,10 @@ build_package_microshell() {
   fi
   { cd ports/unix
     "$MAKE" $MAKE_OPTS axtls
-    "$MAKE" $MAKE_OPTS CFLAGS_EXTRA="-DMICROPY_PY_SYS_PATH_DEFAULT='\"${PREFIX_PATH}/lib/microshell\"'"
+    "$MAKE" $MAKE_OPTS CFLAGS_EXTRA="-DMICROPY_PY_SYS_PATH_DEFAULT='\"${PREFIX_PATH}/lib/micropython\"'"
     "$MAKE" install $MAKE_INSTALL_OPTS PREFIX="${PREFIX_PATH}"
-    ln -fs microshell "${PREFIX_PATH}/bin/shell"
-    mkdir -p "${PREFIX_PATH}/lib/microshell"
+    ln -fs micropython "${PREFIX_PATH}/bin/python"
+    mkdir -p "${PREFIX_PATH}/lib/micropython"
   }>&4 2>&1
 }
 
@@ -1043,7 +1085,7 @@ build_package_pypy() {
         ( cd "${PREFIX_PATH}/lib" && ln -fs "../bin/${bin##*/}" "${bin##*/}" )
         ;;
       "pypy"* )
-        ( cd "${PREFIX_PATH}/bin" && ln -fs "${bin##*/}" "shell" )
+        ( cd "${PREFIX_PATH}/bin" && ln -fs "${bin##*/}" "python" )
         ;;
       esac
     fi
@@ -1052,16 +1094,16 @@ build_package_pypy() {
 }
 
 build_package_pypy_builder() {
-  if [ -f "rshell/bin/rshell" ]; then # pypy 2.x
+  if [ -f "rpython/bin/rpython" ]; then # pypy 2.x
     if [ -z "${PYPY_OPTS}" ]; then
       local PYPY_OPTS="--opt=jit --batch --make-jobs=$(num_cpu_cores)"
     fi
-    shell "rshell/bin/rshell" ${PYPY_OPTS} "pypy/goal/targetpypystandalone.py" >&4 2>&1
+    python "rpython/bin/rpython" ${PYPY_OPTS} "pypy/goal/targetpypystandalone.py" >&4 2>&1
   elif [ -f "pypy/translator/goal/translate.py" ]; then # pypy 1.x
     if [ -z "${PYPY_OPTS}" ]; then
       local PYPY_OPTS="--opt=jit"
     fi
-    ( cd "pypy/translator/goal" && shell "translate.py" ${PYPY_OPTS} "targetpypystandalone.py" ) 1>&4 2>&1
+    ( cd "pypy/translator/goal" && python "translate.py" ${PYPY_OPTS} "targetpypystandalone.py" ) 1>&4 2>&1
   else
     echo "not a pypy source tree" 1>&3
     return 1
@@ -1203,8 +1245,8 @@ require_gcc() {
         echo "\`llvm-gcc\`, a modified version of GCC which outputs LLVM bytecode."
         echo
         echo "For most programs the \`llvm-gcc\` compiler works fine. However,"
-        echo "versions of Cshell newer than 3.3.0 are incompatible with"
-        echo "\`llvm-gcc\`. To build newer versions of Cshell you must have the official"
+        echo "versions of CPython newer than 3.3.0 are incompatible with"
+        echo "\`llvm-gcc\`. To build newer versions of CPython you must have the official"
         echo "GCC compiler installed on your system."
         echo
 
@@ -1222,7 +1264,7 @@ require_gcc() {
         echo
         echo
         echo "You will need to install the official GCC compiler to build newer"
-        echo "versions of Cshell even if you have installed Apple's Command Line Tools"
+        echo "versions of CPython even if you have installed Apple's Command Line Tools"
         echo "for Xcode package. The Command Line Tools for Xcode package only"
         echo "includes \`llvm-gcc\`."
       fi
