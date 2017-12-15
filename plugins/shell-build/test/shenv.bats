@@ -148,7 +148,6 @@ OUT
 --patch
 --verbose
 --version
---debug
 
 ${SHENV_ROOT}/plugins/bar/share/shell-build
 ${SHENV_ROOT}/plugins/foo/share/shell-build

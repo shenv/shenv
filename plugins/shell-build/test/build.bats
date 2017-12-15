@@ -404,7 +404,7 @@ OUT
 
   MAKE=gmake stub_make_install
 
-  MAKE= install_fixture definitions/vanilla-python
+  MAKE= install_fixture definitions/vanilla-shell
   assert_success
 
   unstub gmake
@@ -421,7 +421,7 @@ OUT
 
   stub_make_install
 
-  MAKE= install_fixture definitions/vanilla-python
+  MAKE= install_fixture definitions/vanilla-shell
   assert_success
 
   unstub uname
@@ -437,7 +437,7 @@ OUT
 
   stub_make_install
 
-  MAKE= install_fixture definitions/vanilla-python
+  MAKE= install_fixture definitions/vanilla-shell
   assert_success
 
   unstub uname
@@ -491,50 +491,6 @@ OUT
 
   run "$INSTALL_ROOT/bin/package" "world"
   assert_success "hello world"
-}
-
-@test "mruby strategy overwrites non-writable files" {
-  # nop
-}
-
-@test "mruby strategy fetches rake if missing" {
-  # nop
-}
-
-@test "rbx uses bundle then rake" {
-  # nop
-}
-
-@test "fixes rbx binstubs" {
-  # nop
-}
-
-@test "JRuby build" {
-  # nop
-}
-
-@test "JRuby+Graal does not install launchers" {
-  # nop
-}
-
-@test "JRuby Java 7 missing" {
-  # nop
-}
-
-@test "JRuby Java is outdated" {
-  # nop
-}
-
-@test "JRuby Java 7 up-to-date" {
-  # nop
-}
-
-@test "Java version string not on first line" {
-  # nop
-}
-
-@test "Java version string on OpenJDK" {
-  # nop
 }
 
 @test "non-writable TMPDIR aborts build" {

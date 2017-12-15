@@ -130,8 +130,8 @@ You can set certain environment variables to control the build process.
 ### Applying patches to shell before compiling
 
 Both `shenv install` and `shell-build` support the `--patch` (`-p`) flag that
-signals that a patch from stdin should be applied to shell, Jython or PyPy
-source code before the `./configure` and compilation steps.
+signals that a patch from stdin should be applied to shell source code before
+the `./configure` and compilation steps.
 
 Example usage:
 

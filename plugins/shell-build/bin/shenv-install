@@ -18,7 +18,6 @@
 #   -p/--patch         Apply a patch from stdin before building
 #   -v/--verbose       Verbose mode: print compilation status to stdout
 #   --version          Show version of shell-build
-#   -g/--debug         Build a debug version
 #
 # For detailed information on installing shell versions with
 # shell-build, including a list of environment variables for adjusting
@@ -45,7 +44,6 @@ if [ "$1" = "--complete" ]; then
   echo --patch
   echo --verbose
   echo --version
-  echo --debug
   exec shell-build --definitions
 fi
 
@@ -71,7 +69,6 @@ unset SKIP_EXISTING
 unset KEEP
 unset VERBOSE
 unset HAS_PATCH
-unset DEBUG
 
 parse_options "$@"
 for option in "${OPTIONS[@]}"; do
@@ -98,9 +95,6 @@ for option in "${OPTIONS[@]}"; do
     ;;
   "p" | "patch" )
     HAS_PATCH="-p"
-    ;;
-  "g" | "debug" )
-    DEBUG="-g"
     ;;
   "version" )
     exec shell-build --version
@@ -147,7 +141,6 @@ for script in "${scripts[@]}"; do source "$script"; done
 # Set VERSION_NAME from $DEFINITION, if it is not already set. Then
 # compute the installation prefix.
 [ -n "$VERSION_NAME" ] || VERSION_NAME="${DEFINITION##*/}"
-[ -n "$DEBUG" ] && VERSION_NAME="${VERSION_NAME}-debug"
 PREFIX="${SHENV_ROOT}/versions/${VERSION_NAME}"
 
 [ -d "${PREFIX}" ] && PREFIX_EXISTS=1
@@ -191,38 +184,11 @@ if [ -z "${SHENV_BOOTSTRAP_VERSION}" ]; then
     # unsatisfied local .shell-version file can cause the installer to
     # fail.)
     for version_info in "${VERSION_NAME%-dev}" "${VERSION_NAME%.*}" "${VERSION_NAME%%.*}"; do
-      # Anaconda's `curl` doesn't work on platform where `/etc/pki/tls/certs/ca-bundle.crt` isn't available (e.g. Debian)
       for version in $(shenv-whence "shell${version_info}" 2>/dev/null || true); do
-        if [[ "${version}" != "anaconda"* ]] && [[ "${version}" != "miniconda"* ]]; then
-          SHENV_BOOTSTRAP_VERSION="${version}"
-          break 2
-        fi
+        SHENV_BOOTSTRAP_VERSION="${version}"
+        break 2
       done
     done
-    ;;
-  "pypy"*"-dev" | "pypy"*"-src" )
-    # PyPy/PyPy3 requires existing shell 2.7 to build
-    if [ -n "${SHENV_RSHELL_VERSION}" ]; then
-      SHENV_BOOTSTRAP_VERSION="${SHENV_RSHELL_VERSION}"
-    else
-      for version in $(shenv-versions --bare | sort -r); do
-        if [[ "${version}" == "2.7"* ]]; then
-          SHENV_BOOTSTRAP_VERSION="$version"
-          break
-        fi
-      done
-    fi
-    if [ -n "$SHENV_BOOTSTRAP_VERSION" ]; then
-      for dep in curses genc pycparser; do
-        if ! SHENV_VERSION="$SHENV_BOOTSTRAP_VERSION" shenv-exec shell -c "import ${dep}" 1>/dev/null 2>&1; then
-          echo "shenv-install: $VERSION_NAME: PyPy requires \`${dep}' in $SHENV_BOOTSTRAP_VERSION to build from source." >&2
-          exit 1
-        fi
-      done
-    else
-      echo "shenv-install: $VERSION_NAME: PyPy requires shell 2.7 to build from source." >&2
-      exit 1
-    fi
     ;;
   esac
 fi
@@ -243,7 +209,7 @@ trap cleanup SIGINT
 
 # Invoke `shell-build` and record the exit status in $STATUS.
 STATUS=0
-shell-build $KEEP $VERBOSE $HAS_PATCH $DEBUG "$DEFINITION" "$PREFIX" || STATUS="$?"
+shell-build $KEEP $VERBOSE $HAS_PATCH "$DEFINITION" "$PREFIX" || STATUS="$?"
 
 # Display a more helpful message if the definition wasn't found.
 if [ "$STATUS" == "2" ]; then

@@ -99,13 +99,13 @@ resolve_link() {
   stub_make_install
   stub patch ' : echo patch "$@" | sed -E "s/\.[[:alnum:]]+$/.XXX/" >> build.log'
 
-  echo | install_patch definitions/vanilla-python "shell-3.6.2/empty.patch"
+  echo | install_patch definitions/vanilla-shell "shell-3.6.2/empty.patch"
 
   # pyenv/pyenv#257
   stub uname '-s : echo Linux'
   stub uname '-s : echo Linux'
 
-  TMPDIR="$TMP" install_tmp_fixture definitions/vanilla-python < /dev/null
+  TMPDIR="$TMP" install_tmp_fixture definitions/vanilla-shell < /dev/null
   assert_success
 
   assert_build_log <<OUT
@@ -127,15 +127,15 @@ OUT
   stub_make_install
   stub patch ' : for arg; do [[ "$arg" == "-"* ]] || sed -e "s/^/patch: /" "$arg"; done >> build.log'
 
-  echo "foo" | install_patch definitions/vanilla-python "shell-3.6.2/foo.patch"
-  echo "bar" | install_patch definitions/vanilla-python "shell-3.6.2/bar.patch"
-  echo "baz" | install_patch definitions/vanilla-python "shell-3.6.2/baz.patch"
+  echo "foo" | install_patch definitions/vanilla-shell "shell-3.6.2/foo.patch"
+  echo "bar" | install_patch definitions/vanilla-shell "shell-3.6.2/bar.patch"
+  echo "baz" | install_patch definitions/vanilla-shell "shell-3.6.2/baz.patch"
 
   # pyenv/pyenv#257
   stub uname '-s : echo Linux'
   stub uname '-s : echo Linux'
 
-  TMPDIR="$TMP" install_tmp_fixture definitions/vanilla-python < /dev/null
+  TMPDIR="$TMP" install_tmp_fixture definitions/vanilla-shell < /dev/null
   assert_success
 
   assert_build_log <<OUT
@@ -164,7 +164,7 @@ OUT
   stub uname '-s : echo Linux'
   stub uname '-s : echo Linux'
 
-  SHELL_MAKE_INSTALL_TARGET="altinstall" TMPDIR="$TMP" install_tmp_fixture definitions/vanilla-python < /dev/null
+  SHELL_MAKE_INSTALL_TARGET="altinstall" TMPDIR="$TMP" install_tmp_fixture definitions/vanilla-shell < /dev/null
   assert_success
 
   assert_build_log <<OUT
@@ -175,64 +175,6 @@ make altinstall
 OUT
 
   unstub make
-}
-
-@test "ensurepip without altinstall" {
-  mkdir -p "${INSTALL_ROOT}/bin"
-  cat <<OUT > "${INSTALL_ROOT}/bin/shell"
-#!$BASH
-echo "shell \$@" >> "${INSTALL_ROOT}/build.log"
-OUT
-  chmod +x "${INSTALL_ROOT}/bin/shell"
-
-  SHELL_MAKE_INSTALL_TARGET="" TMPDIR="$TMP" run_inline_definition <<OUT
-build_package_ensurepip
-OUT
-  assert_success
-
-  assert_build_log <<OUT
-shell -s -m ensurepip
-OUT
-}
-
-@test "ensurepip with altinstall" {
-  mkdir -p "${INSTALL_ROOT}/bin"
-  cat <<OUT > "${INSTALL_ROOT}/bin/shell"
-#!$BASH
-echo "shell \$@" >> "${INSTALL_ROOT}/build.log"
-OUT
-  chmod +x "${INSTALL_ROOT}/bin/shell"
-
-  SHELL_MAKE_INSTALL_TARGET="altinstall" TMPDIR="$TMP" run_inline_definition <<OUT
-build_package_ensurepip
-OUT
-  assert_success
-
-  assert_build_log <<OUT
-shell -s -m ensurepip --altinstall
-OUT
-}
-
-@test "shell3-config" {
-  mkdir -p "${INSTALL_ROOT}/bin"
-  touch "${INSTALL_ROOT}/bin/shell3"
-  chmod +x "${INSTALL_ROOT}/bin/shell3"
-  touch "${INSTALL_ROOT}/bin/shell3.4"
-  chmod +x "${INSTALL_ROOT}/bin/shell3.4"
-  touch "${INSTALL_ROOT}/bin/shell3-config"
-  chmod +x "${INSTALL_ROOT}/bin/shell3-config"
-  touch "${INSTALL_ROOT}/bin/shell3.4-config"
-  chmod +x "${INSTALL_ROOT}/bin/shell3.4-config"
-
-  TMPDIR="$TMP" run_inline_definition <<OUT
-verify_shell shell3.4
-OUT
-  assert_success
-
-  [ -L "${INSTALL_ROOT}/bin/shell" ]
-  [ -L "${INSTALL_ROOT}/bin/shell-config" ]
-  [[ "$(resolve_link "${INSTALL_ROOT}/bin/shell")" == "shell3.4" ]]
-  [[ "$(resolve_link "${INSTALL_ROOT}/bin/shell-config")" == "shell3.4-config" ]]
 }
 
 @test "enable framework" {
@@ -287,7 +229,7 @@ EOS
     " : echo \"$MAKE \$@\" >> build.log" \
     " : echo \"$MAKE \$@\" >> build.log && cat build.log >> '$INSTALL_ROOT/build.log'"
 
-  SHELL_CONFIGURE_OPTS="--enable-unicode=ucs2" TMPDIR="$TMP" install_tmp_fixture definitions/vanilla-python < /dev/null
+  SHELL_CONFIGURE_OPTS="--enable-unicode=ucs2" TMPDIR="$TMP" install_tmp_fixture definitions/vanilla-shell < /dev/null
   assert_success
 
   assert_build_log <<OUT

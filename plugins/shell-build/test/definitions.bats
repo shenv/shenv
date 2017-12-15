@@ -77,16 +77,16 @@ NUM_DEFINITIONS="$(find "$BATS_TEST_DIRNAME"/../share/shell-build -maxdepth 1 -t
 3.4-dev
 3.4.1
 3.4.2
-jython-dev
-jython-2.5.0
-jython-2.5-dev
-jython-2.5.1
-jython-2.5.2
-jython-2.5.3
-jython-2.5.4-rc1
-jython-2.7-beta1
-jython-2.7-beta2
-jython-2.7-beta3"
+bash-dev
+bash-2.5.0
+bash-2.5-dev
+bash-2.5.1
+bash-2.5.2
+bash-2.5.3
+bash-2.5.4-rc1
+bash-2.7-beta1
+bash-2.7-beta2
+bash-2.7-beta3"
   for ver in "$expected"; do
     touch "${SHELL_BUILD_ROOT}/share/shell-build/$ver"
   done

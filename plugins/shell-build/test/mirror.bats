@@ -114,7 +114,7 @@ setup() {
 }
 
 
-@test "package URL with ruby-lang CDN with default mirror URL will bypasses mirror" {
+@test "package URL from an excluded host bypasses the default mirror" {
   export SHELL_BUILD_MIRROR_URL=
   local checksum="ba988b1bb4250dee0b9dd3d4d722f9c64b2bacfc805d1b6eba7426bda72dd3c5"
 
