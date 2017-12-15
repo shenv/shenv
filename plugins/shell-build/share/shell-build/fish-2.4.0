@@ -1,4 +1,4 @@
 #require_gcc
 install_package "openssl-1.0.2k" "https://www.openssl.org/source/openssl-1.0.2k.tar.gz#6b3977c61f2aedf0f96367dcfb5c6e578cf37e7b8d913b4ecb6643c3cb88d8c0" mac_openssl --if has_broken_mac_openssl
 install_package "readline-6.3" "https://ftpmirror.gnu.org/readline/readline-6.3.tar.gz#56ba6071b9462f980c5a72ab0023893b65ba6debb4eeb475d7a563dc65cafd43" standard --if has_broken_mac_readline
-install_package "Fish-2.4.0" "https://fishshell.com/files/2.4.0/fish-2.4.0.tar.gz#06bbb2323360439c4044da762d114ec1aa1aba265cec71c0543e6a0095c9efc5"
+install_package "fish-2.4.0" "https://fishshell.com/files/2.4.0/fish-2.4.0.tar.gz#06bbb2323360439c4044da762d114ec1aa1aba265cec71c0543e6a0095c9efc5"
