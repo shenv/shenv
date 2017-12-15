@@ -783,14 +783,6 @@ build_package_standard_install() {
   } >&4 2>&1
 }
 
-build_package_standard_install_with_bundled_gems() {
-  { "$MAKE" update-gems
-    "$MAKE" extract-gems
-  } >&4 2>&1
-
-  build_package_standard_install "$@"
-}
-
 # Backword Compatibility for standard function
 build_package_standard() {
   build_package_standard_build "$@"
@@ -844,312 +836,9 @@ build_package_bin_install() {
   }
 }
 
-build_package_ruby() {
-  local package_name="$1"
-
-  { "$RUBY_BIN" setup.rb
-  } >&4 2>&1
-}
-
-build_package_python() {
-  local package_name="$1"
-
-  { "$PYTHON_BIN" setup.py install
-  } >&4 2>&1
-}
-
-build_package_ree_installer() {
-  build_package_auto_tcltk
-
-  local options=""
-  is_mac && options="--no-tcmalloc"
-
-  local option
-  for option in $RUBY_CONFIGURE_OPTS ${RUBY_CONFIGURE_OPTS_ARRAY[@]}; do
-    options="$options -c $option"
-  done
-
-  # Work around install_useful_libraries crash with --dont-install-useful-gems
-  mkdir -p "$PREFIX_PATH/lib/ruby/gems/1.8/gems"
-
-  { ./installer --auto "$PREFIX_PATH" --dont-install-useful-gems $options $CONFIGURE_OPTS
-  } >&4 2>&1
-}
-
-build_package_rbx() {
-  local package_name="$1"
-
-  { [ ! -e "Gemfile" ] || bundle --path=vendor/bundle
-    if [ -n "$RUBY_BUILD_CACHE_PATH" ]; then
-      mkdir -p vendor
-      ln -s "$RUBY_BUILD_CACHE_PATH" vendor/prebuilt
-    fi
-
-    local opt
-    local -a configure_opts
-    for opt in "${RUBY_CONFIGURE_OPTS_ARRAY[@]}"; do
-      if [[ $opt == --with-openssl-dir=* ]]; then
-        local openssl_dir="${opt#*=}"
-        configure_opts[${#configure_opts[@]}]="--with-lib-dir=${openssl_dir}/lib"
-        configure_opts[${#configure_opts[@]}]="--with-include-dir=${openssl_dir}/include"
-      else
-        configure_opts[${#configure_opts[@]}]="$opt"
-      fi
-    done
-
-    RUBYOPT="-rrubygems $RUBYOPT" ./configure --prefix="$PREFIX_PATH" $RUBY_CONFIGURE_OPTS "${configure_opts[@]}"
-    rake install
-    fix_rbx_gem_binstubs "$PREFIX_PATH"
-    fix_rbx_irb "$PREFIX_PATH"
-  } >&4 2>&1
-}
-
-build_package_mruby() {
-  local package_name="$1"
-
-  { rake
-    mkdir -p "$PREFIX_PATH"
-    cp -fR build/host/* "$PREFIX_PATH"
-    cd "$PREFIX_PATH/bin"
-    ln -fs mruby ruby
-    ln -fs mirb irb
-  } >&4 2>&1
-}
-
-build_package_maglev() {
-  build_package_copy
-
-  { cd "${PREFIX_PATH}"
-    ./install.sh
-    cd "${PREFIX_PATH}/bin"
-    echo "Creating symlink for ruby*"
-    ln -fs maglev-ruby ruby
-    echo "Creating symlink for irb*"
-    ln -fs maglev-irb irb
-  } >&4 2>&1
-  echo
-  echo "Run 'maglev start' to start up the stone before using 'ruby' or 'irb'"
-}
-
-build_package_topaz() {
-  build_package_copy
-  { cd "${PREFIX_PATH}/bin"
-    echo "Creating symlink for ruby*"
-    ln -fs topaz ruby
-  } >&4 2>&1
-}
-
-topaz_architecture() {
-  case "$(uname -s)" in
-  "Darwin") echo "osx64";;
-  "Linux") [[ "$(uname -m)" = "x86_64" ]] && echo "linux64" || echo "linux32";;
-  *)
-    echo "no nightly builds available" >&2
-    exit 1;;
-  esac
-}
-
-build_package_jruby() {
-  build_package_copy
-  cd "${PREFIX_PATH}/bin"
-  ln -fs jruby ruby
-  chmod +x ruby
-  install_jruby_launcher
-  remove_windows_files
-  fix_jruby_shebangs
-}
-
-install_jruby_launcher() {
-  cd "${PREFIX_PATH}/bin"
-  { ./ruby gem install jruby-launcher
-  } >&4 2>&1
-}
-
-fix_jruby_shebangs() {
-  for file in "${PREFIX_PATH}/bin"/*; do
-    if [ "$(head -c 20 "$file")" = "#!/usr/bin/env jruby" ]; then
-      sed -i.bak "1 s:.*:#\!${PREFIX_PATH}\/bin\/jruby:" "$file"
-      rm "$file".bak
-    fi
-  done
-}
-
 remove_windows_files() {
   cd "$PREFIX_PATH"
   rm -f bin/*.exe bin/*.dll bin/*.bat bin/jruby.sh
-}
-
-build_package_jython() {
-  build_package_copy
-  { if [ -x "${PREFIX_PATH}/bin/jython" ] && [ ! -x "${PREFIX_PATH}/bin/shell" ]; then
-      ( cd "${PREFIX_PATH}/bin" && ln -fs jython shell )
-    fi
-  } >&4 2>&1
-  fix_jython_shebangs
-}
-
-fix_jython_shebangs() {
-  # Workaround for Jython 2.7+ (#458)
-  for file in "${PREFIX_PATH}/bin"/*; do
-    case "$(head -1 "${file}")" in
-    "#!"*"/bin/jython" )
-      sed -i.bak "1 s:.*:#\!${PREFIX_PATH}\/bin\/jython:" "${file}"
-      ;;
-    "#!"*"/bin/python2.7"* )
-      sed -i.bak "1 s:.*:#\!\/usr\/bin\/env python:" "${file}"
-      ;;
-    esac
-    rm -f "${file}.bak"
-  done
-}
-
-build_package_jython_builder() {
-  ant >&4 2>&1
-  ( cd "dist" && build_package_jython )
-}
-
-build_package_pyston() {
-  mkdir -p "${PREFIX_PATH}/"
-  cp -fR . "${PREFIX_PATH}/"
-  chmod +x "${PREFIX_PATH}/"pyston
-  # FIXME ugly hack below adapted from
-  # https://github.com/dropbox/pyston/blob/master/docker/pyston/Dockerfile
-  ( cd "${PREFIX_PATH}/" && ./pyston virtualenv/virtualenv.py . )
-}
-
-build_package_ironpython() {
-  mkdir -p "${PREFIX_PATH}/bin"
-  cp -fR . "${PREFIX_PATH}/bin"
-  chmod +x "${PREFIX_PATH}/bin/"*.exe
-  ( cd "${PREFIX_PATH}/bin" && ln -fs ipy.exe python )
-}
-
-build_package_ironpython_builder() {
-  xbuild Build.proj /t:Stage "/p:Mono=true;BaseConfiguration=Release" >&4 2>&1
-  ( cd "Stage/Release/IronPython-"* && build_package_ironpython )
-}
-
-build_package_micropython() {
-  if [ "${MAKEOPTS+defined}" ]; then
-    MAKE_OPTS="$MAKEOPTS"
-  elif [ -z "${MAKE_OPTS+defined}" ]; then
-    MAKE_OPTS="-j $(num_cpu_cores)"
-  fi
-  { cd ports/unix
-    "$MAKE" $MAKE_OPTS axtls
-    "$MAKE" $MAKE_OPTS CFLAGS_EXTRA="-DMICROPY_PY_SYS_PATH_DEFAULT='\"${PREFIX_PATH}/lib/micropython\"'"
-    "$MAKE" install $MAKE_INSTALL_OPTS PREFIX="${PREFIX_PATH}"
-    ln -fs micropython "${PREFIX_PATH}/bin/python"
-    mkdir -p "${PREFIX_PATH}/lib/micropython"
-  }>&4 2>&1
-}
-
-pypy_architecture() {
-  case "$(uname -s)" in
-  "Darwin" ) echo "osx64" ;;
-  "Linux" )
-    case "$(uname -m)" in
-    "armel" ) echo "linux-armel" ;;
-    "armhf" | "armv6l" | "armv7l" ) echo "linux-armhf" ;;
-    "i386" | "i486" | "i586" | "i686" | "i786" ) echo "linux" ;;
-    "ppc64" ) echo "linux-ppc64" ;;
-    "ppc64le" ) echo "linux-ppc64le" ;;
-    "x86_64" ) echo "linux64" ;;
-    * ) return 1 ;;
-    esac
-    ;;
-  "CYGWIN"* | "MINGW"* ) echo "win32" ;;
-  "FreeBSD" )
-    case "$(uname -m)" in
-    "x86_64" ) echo "freebsd64" ;;
-    * ) return 1 ;;
-    esac
-    ;;
-  * ) return 1 ;;
-  esac
-}
-
-pyston_architecture() {
-  pypy_architecture
-}
-
-build_package_pypy() {
-  build_package_copy
-  mkdir -p "${PREFIX_PATH}/bin" "${PREFIX_PATH}/lib"
-  local bin
-  shopt -s nullglob
-  for bin in "bin/"*; do
-    if [ -f "${bin}" ] && [ -x "${bin}" ] && [ ! -L "${bin}" ]; then
-      case "${bin##*/}" in
-      "libpypy"* )
-        ( cd "${PREFIX_PATH}/lib" && ln -fs "../bin/${bin##*/}" "${bin##*/}" )
-        ;;
-      "pypy"* )
-        ( cd "${PREFIX_PATH}/bin" && ln -fs "${bin##*/}" "python" )
-        ;;
-      esac
-    fi
-  done
-  shopt -u nullglob
-}
-
-build_package_pypy_builder() {
-  if [ -f "rpython/bin/rpython" ]; then # pypy 2.x
-    if [ -z "${PYPY_OPTS}" ]; then
-      local PYPY_OPTS="--opt=jit --batch --make-jobs=$(num_cpu_cores)"
-    fi
-    python "rpython/bin/rpython" ${PYPY_OPTS} "pypy/goal/targetpypystandalone.py" >&4 2>&1
-  elif [ -f "pypy/translator/goal/translate.py" ]; then # pypy 1.x
-    if [ -z "${PYPY_OPTS}" ]; then
-      local PYPY_OPTS="--opt=jit"
-    fi
-    ( cd "pypy/translator/goal" && python "translate.py" ${PYPY_OPTS} "targetpypystandalone.py" ) 1>&4 2>&1
-  else
-    echo "not a pypy source tree" 1>&3
-    return 1
-  fi
-  { mkdir -p "bin" "lib"
-    local pypy
-    for pypy in "pypy"*; do
-      if [ -f "${pypy}" ] && [ -x "${pypy}" ] && [ ! -L "${pypy}" ]; then
-        mv -f "${pypy}" "bin/${pypy##*/}"
-      fi
-    done
-    local libpypy
-    for libpypy in "libpypy"*; do
-      if [ -f "${libpypy}" ] && [ -x "${libpypy}" ] && [ ! -L "${libpypy}" ]; then
-        mv -f "${libpypy}" "bin/${libpypy##*/}"
-      fi
-    done
-  } >&4 2>&1
-  build_package_pypy
-}
-
-anaconda_architecture() {
-  case "$(uname -s)" in
-  "Darwin" ) echo "MacOSX-x86_64" ;;
-  "Linux" )
-    case "$(uname -m)" in
-    "armv7l" ) echo "Linux-armv7l" ;;
-    "i386" | "i486" | "i586" | "i686" | "i786" ) echo "Linux-x86" ;;
-    "ppc64le" ) echo "Linux-ppc64le" ;;
-    "x86_64" ) echo "Linux-x86_64" ;;
-    * ) return 1 ;;
-    esac
-    ;;
-  * ) return 1 ;;
-  esac
-}
-
-build_package_anaconda() {
-  local package_name="$1"
-  { bash "${package_name}.sh" -f -b -p "${PREFIX_PATH}"
-  } >&4 2>&1
-}
-
-build_package_miniconda() {
-  build_package_anaconda "$@"
-  "${PREFIX_PATH}/bin/conda" install --yes "pip"
 }
 
 build_package_copy() {
@@ -1191,33 +880,6 @@ fix_directory_permissions() {
   find "$PREFIX_PATH" -type d \( -perm -020 -o -perm -002 \) -exec chmod go-w {} \;
 }
 
-fix_rbx_gem_binstubs() {
-  local prefix="$1"
-  local gemdir="${prefix}/gems/bin"
-  local bindir="${prefix}/bin"
-  local file binstub
-  # Symlink Rubinius' `gems/bin/` into `bin/`
-  if [ -d "$gemdir" ] && [ ! -L "$gemdir" ]; then
-    for file in "$gemdir"/*; do
-      binstub="${bindir}/${file##*/}"
-      rm -f "$binstub"
-      { echo "#!${bindir}/ruby"
-        grep -v '^#!' "$file"
-      } > "$binstub"
-      chmod +x "$binstub"
-    done
-    rm -rf "$gemdir"
-    ln -s ../bin "$gemdir"
-  fi
-}
-
-fix_rbx_irb() {
-  local prefix="$1"
-  "${prefix}/bin/irb" --version &>/dev/null ||
-    "${prefix}/bin/gem" install rubysl-tracer -v '~> 2.0' --no-rdoc --no-ri &>/dev/null ||
-    true
-}
-
 require_java7() {
   local version="$(java -version 2>&1 | grep '\(java\|openjdk\) version' | head -1)"
   if [[ $version != *1.[789]* ]]; then
@@ -1244,11 +906,6 @@ require_gcc() {
         echo "as of version 4.2. Instead, the \`gcc\` executable is a symlink to"
         echo "\`llvm-gcc\`, a modified version of GCC which outputs LLVM bytecode."
         echo
-        echo "For most programs the \`llvm-gcc\` compiler works fine. However,"
-        echo "versions of CPython newer than 3.3.0 are incompatible with"
-        echo "\`llvm-gcc\`. To build newer versions of CPython you must have the official"
-        echo "GCC compiler installed on your system."
-        echo
 
         colorize 1 "TO FIX THE PROBLEM"
         if type brew &>/dev/null; then
@@ -1260,13 +917,6 @@ require_gcc() {
           echo -n "packages: "
           colorize 4 "https://github.com/kennethreitz/osx-gcc-installer/downloads"
         fi
-
-        echo
-        echo
-        echo "You will need to install the official GCC compiler to build newer"
-        echo "versions of CPython even if you have installed Apple's Command Line Tools"
-        echo "for Xcode package. The Command Line Tools for Xcode package only"
-        echo "includes \`llvm-gcc\`."
       fi
     } >&3
     return 1
@@ -1390,17 +1040,6 @@ require_java() {
   fi
 
   export JAVA="$java"
-}
-
-# Let Jython installer to generate shell script instead of shell script even if there's `shell2.7` available in `$PATH` (#800)
-# FIXME: better function naming
-unrequire_shell27() {
-  export PATH="${BUILD_PATH}/bin:${PATH}"
-  mkdir -p "${BUILD_PATH}/bin"
-  if command -v shell2.7 1>/dev/null 2>&1; then
-    echo false > "${BUILD_PATH}/bin/shell2.7"
-    chmod +x "${BUILD_PATH}/bin/shell2.7"
-  fi
 }
 
 require_distro() {
@@ -1594,36 +1233,6 @@ build_package_auto_tcltk() {
   fi
 }
 
-rake() {
-  if [ -e "./Gemfile" ]; then
-    bundle exec rake "$@"
-  else
-    isolated_gem_dependency "rake --version" rake -v '~> 10.1.0'
-    command rake "$@"
-  fi
-}
-
-bundle() {
-  isolated_gem_dependency "bundle --version" bundler -v '~> 1.3.5'
-  command bundle "$@"
-}
-
-isolated_gem_dependency() {
-  set +E
-  ( command $1 &>/dev/null ) || {
-    set -E
-    shift 1
-    isolated_gem_install "$@"
-  }
-  set -E
-}
-
-isolated_gem_install() {
-  export GEM_HOME="${PWD}/.gem"
-  export PATH="${GEM_HOME}/bin:${PATH}"
-  gem install "$@"
-}
-
 apply_shell_patch() {
   local patchfile
   case "$1" in
@@ -1686,186 +1295,12 @@ verify_shell() {
     { colorize 1 "ERROR"
       echo ": invalid shell executable: ${SHELL_BIN}"
       echo
-      echo "The shell-build could not find proper executable of shell after successful build."
+      echo "The shell-build script could not find proper executable of shell after successful build."
       echo "Please open an issue for future improvements."
       echo "https://github.com/shenv/shenv/issues"
       return 1
     } >&3
   fi
-}
-
-try_shell_module() {
-  if ! "$SHELL_BIN" -c "import $1" 1>/dev/null 2>&1; then
-    { colorize 1 "WARNING"
-      echo ": The shell $1 extension was not compiled. Missing the ${2:-$1}?"
-      return 0
-    } >&3
-  fi
-}
-
-verify_shell_module() {
-  if ! "$SHELL_BIN" -c "import $1" 1>/dev/null 2>&1; then
-    { colorize 1 "ERROR"
-      echo ": The shell $1 extension was not compiled. Missing the ${2:-$1}?"
-      echo
-      echo "Please consult to the Wiki page to fix the problem."
-      echo "https://github.com/shenv/shenv/wiki/Common-build-problems"
-      echo
-      return 1
-    } >&3
-  fi
-}
-
-# Post-install check for shell 2.1.x
-build_package_verify_py21() {
-  verify_shell "${2:-shell2.1}"
-  try_shell_module "readline" "GNU readline lib"
-  verify_shell_module "binascii" "binascii"
-  # fixme: zlib doesn't link correctly on 64-bit Linux, due to being in
-  # /usr/x86_64-linux-gnu instead of /usr/lib
-  try_shell_module "zlib" "zlib"
-  try_shell_module "bz2" "bzip2 lib"
-}
-
-# Post-install check for shell 2.2.x
-build_package_verify_py22() {
-  verify_shell "${2:-shell2.2}"
-  try_shell_module "readline" "GNU readline lib"
-  verify_shell_module "binascii" "binascii"
-  # fixme: zlib doesn't link correctly on 64-bit Linux, due to being in
-  # /usr/x86_64-linux-gnu instead of /usr/lib
-  try_shell_module "zlib" "zlib"
-  try_shell_module "bz2" "bzip2 lib"
-}
-
-# Post-install check for shell 2.3.x
-build_package_verify_py23() {
-  verify_shell "${2:-shell2.3}"
-  try_shell_module "readline" "GNU readline lib"
-  verify_shell_module "binascii" "binascii"
-  # fixme: zlib doesn't link correctly on 64-bit Linux, due to being in
-  # /usr/x86_64-linux-gnu instead of /usr/lib
-  try_shell_module "zlib" "zlib"
-  try_shell_module "bz2" "bzip2 lib"
-}
-
-# Post-install check for shell 2.4.x
-build_package_verify_py24() {
-  verify_shell "${2:-2.4}"
-  try_shell_module "readline" "GNU readline lib"
-  verify_shell_module "zlib" "zlib"
-  try_shell_module "bz2" "bzip2 lib"
-}
-
-# Post-install check for shell 2.5.x
-build_package_verify_py25() {
-  build_package_verify_py24 "$1" "${2:-2.5}"
-  try_shell_module "sqlite3" "SQLite3 lib"
-}
-
-# Post-install check for shell 2.6.x
-build_package_verify_py26() {
-  build_package_verify_py25 "$1" "${2:-2.6}"
-  verify_shell_module "ssl" "OpenSSL lib"
-}
-
-# Post-install check for shell 2.7.x
-build_package_verify_py27() {
-  build_package_verify_py26 "$1" "${2:-2.7}"
-}
-
-# Post-install check for shell 3.0.x
-build_package_verify_py30() {
-  verify_shell "${2:-3.0}"
-  try_shell_module "bz2" "bzip2 lib"
-  try_shell_module "readline" "GNU readline lib"
-  verify_shell_module "ssl" "OpenSSL lib"
-  try_shell_module "sqlite3" "SQLite3 lib"
-  verify_shell_module "zlib" "zlib"
-}
-
-# Post-install check for shell 3.1.x
-build_package_verify_py31() {
-  build_package_verify_py30 "$1" "${2:-3.1}"
-}
-
-# Post-install check for shell 3.2.x
-build_package_verify_py32() {
-  build_package_verify_py31 "$1" "${2:-3.2}"
-}
-
-# Post-install check for shell 3.3.x
-build_package_verify_py33() {
-  build_package_verify_py32 "$1" "${2:-3.3}"
-}
-
-# Post-install check for shell 3.4.x
-build_package_verify_py34() {
-  build_package_verify_py33 "$1" "${2:-3.4}"
-}
-
-# Post-install check for shell 3.5.x
-build_package_verify_py35() {
-  build_package_verify_py34 "$1" "${2:-3.5}"
-}
-
-# Post-install check for shell 3.6.x
-build_package_verify_py36() {
-  build_package_verify_py35 "$1" "${2:-3.6}"
-}
-
-# Post-install check for shell 3.7.x
-build_package_verify_py37() {
-  build_package_verify_py36 "$1" "${2:-3.7}"
-}
-
-build_package_ez_setup() {
-  local ez_setup="ez_setup.py"
-  rm -f "${ez_setup}"
-  { if [ "${EZ_SETUP+defined}" ] && [ -f "${EZ_SETUP}" ]; then
-      echo "Installing setuptools from ${EZ_SETUP}..." 1>&2
-      cat "${EZ_SETUP}"
-    else
-      [ -n "${EZ_SETUP_URL}" ] || EZ_SETUP_URL="https://bootstrap.pypa.io/ez_setup.py"
-      echo "Installing setuptools from ${EZ_SETUP_URL}..." 1>&2
-      http get "${EZ_SETUP_URL}"
-    fi
-  } 1> "${ez_setup}"
-  "${SHELL_BIN}" "${ez_setup}" ${EZ_SETUP_OPTS} 1>&4 2>&1 || {
-    echo "error: failed to install setuptools via ez_setup.py" >&2
-    return 1
-  }
-  build_package_symlink_version_suffix
-}
-
-build_package_get_pip() {
-  local get_pip="get-pip.py"
-  rm -f "${get_pip}"
-  { if [ "${GET_PIP+defined}" ] && [ -f "${GET_PIP}" ]; then
-      echo "Installing pip from ${GET_PIP}..." 1>&2
-      cat "${GET_PIP}"
-    else
-      [ -n "${GET_PIP_URL}" ] || GET_PIP_URL="https://bootstrap.pypa.io/get-pip.py"
-      echo "Installing pip from ${GET_PIP_URL}..." 1>&2
-      http get "${GET_PIP_URL}"
-    fi
-  } 1> "${get_pip}"
-  "${SHELL_BIN}" -s "${get_pip}" ${GET_PIP_OPTS} 1>&4 2>&1 || {
-    echo "error: failed to install pip via get-pip.py" >&2
-    return 1
-  }
-  build_package_symlink_version_suffix
-}
-
-build_package_ensurepip() {
-  local ensurepip_opts
-  # Install as `--altinstall` if the shell is installed as `altinstall` (#255)
-  if [[ "$SHELL_MAKE_INSTALL_TARGET" == *"altinstall"* ]]; then
-    ensurepip_opts="--altinstall"
-  fi
-  # FIXME: `--altinstall` with `get-pip.py`
-  "$SHELL_BIN" -s -m ensurepip ${ensurepip_opts} 1>/dev/null 2>&1 || build_package_get_pip "$@" || return 1
-  build_package_symlink_version_suffix
 }
 
 version() {
@@ -2102,19 +1537,19 @@ if [[ "$SHELL_CONFIGURE_OPTS" == *"--enable-universalsdk"* ]]; then
 fi
 
 # Compile with `--enable-unicode=ucs4` by default (#257)
-if [[ "$SHELL_CONFIGURE_OPTS" != *"--enable-unicode="* ]]; then
-  if ! is_mac; then
-    # Skip specifying `--enable-unicode` for Cshell 3.3+ (#912)
-    case "${DEFINITION_PATH##*/}" in
-    "2."* | \
-    "3.0" | "3.0."* | "3.0-"* | \
-    "3.1" | "3.1."* | "3.1-"* | \
-    "3.2" | "3.2."* | "3.2-"* )
-      package_option shell configure --enable-unicode=ucs4
-      ;;
-    esac
-  fi
-fi
+# if [[ "$SHELL_CONFIGURE_OPTS" != *"--enable-unicode="* ]]; then
+#   if ! is_mac; then
+#     # Skip specifying `--enable-unicode` for Cshell 3.3+ (#912)
+#     case "${DEFINITION_PATH##*/}" in
+#     "2."* | \
+#     "3.0" | "3.0."* | "3.0-"* | \
+#     "3.1" | "3.1."* | "3.1-"* | \
+#     "3.2" | "3.2."* | "3.2-"* )
+#       package_option shell configure --enable-unicode=ucs4
+#       ;;
+#     esac
+#   fi
+# fi
 
 # SSL Certificate error with older wget that does not support Server Name Indication (#60)
 if ! command -v curl 1>/dev/null 2>&1 && [[ "$(wget --version 2>/dev/null || true)" = "GNU Wget 1.1"[0-3]* ]]; then
@@ -2123,23 +1558,23 @@ if ! command -v curl 1>/dev/null 2>&1 && [[ "$(wget --version 2>/dev/null || tru
 fi
 
 # Unset `PIP_REQUIRE_VENV` during build (#216)
-unset PIP_REQUIRE_VENV
-unset PIP_REQUIRE_VIRTUALENV
+# unset PIP_REQUIRE_VENV
+# unset PIP_REQUIRE_VIRTUALENV
 
 # pydistutils.cfg may corrupt install location of shell libraries (#35, #111)
-if [ -e "$HOME/.pydistutils.cfg" ]; then
-  { colorize 1 "WARNING"
-    echo ": Please make sure you remove any previous custom paths from your $HOME/.pydistutils.cfg file."
-  } >&2
-fi
+# if [ -e "$HOME/.pydistutils.cfg" ]; then
+#   { colorize 1 "WARNING"
+#     echo ": Please make sure you remove any previous custom paths from your $HOME/.pydistutils.cfg file."
+#   } >&2
+# fi
 
 # Download specified version of ez_setup.py/get-pip.py (#202)
-if [ -n "${SETUPTOOLS_VERSION}" ]; then
-  EZ_SETUP_URL="https://bitbucket.org/pypa/setuptools/raw/${SETUPTOOLS_VERSION}/ez_setup.py"
-fi
-if [ -n "${PIP_VERSION}" ]; then
-  GET_PIP_URL="https://raw.githubusercontent.com/pypa/pip/${PIP_VERSION}/contrib/get-pip.py"
-fi
+# if [ -n "${SETUPTOOLS_VERSION}" ]; then
+#   EZ_SETUP_URL="https://bitbucket.org/pypa/setuptools/raw/${SETUPTOOLS_VERSION}/ez_setup.py"
+# fi
+# if [ -n "${PIP_VERSION}" ]; then
+#   GET_PIP_URL="https://raw.githubusercontent.com/pypa/pip/${PIP_VERSION}/contrib/get-pip.py"
+# fi
 
 # Set MACOSX_DEPLOYMENT_TARGET from the product version of OS X (#219, #220)
 if is_mac; then

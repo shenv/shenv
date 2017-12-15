@@ -177,64 +177,6 @@ OUT
   unstub make
 }
 
-@test "ensurepip without altinstall" {
-  mkdir -p "${INSTALL_ROOT}/bin"
-  cat <<OUT > "${INSTALL_ROOT}/bin/shell"
-#!$BASH
-echo "shell \$@" >> "${INSTALL_ROOT}/build.log"
-OUT
-  chmod +x "${INSTALL_ROOT}/bin/shell"
-
-  SHELL_MAKE_INSTALL_TARGET="" TMPDIR="$TMP" run_inline_definition <<OUT
-build_package_ensurepip
-OUT
-  assert_success
-
-  assert_build_log <<OUT
-shell -s -m ensurepip
-OUT
-}
-
-@test "ensurepip with altinstall" {
-  mkdir -p "${INSTALL_ROOT}/bin"
-  cat <<OUT > "${INSTALL_ROOT}/bin/shell"
-#!$BASH
-echo "shell \$@" >> "${INSTALL_ROOT}/build.log"
-OUT
-  chmod +x "${INSTALL_ROOT}/bin/shell"
-
-  SHELL_MAKE_INSTALL_TARGET="altinstall" TMPDIR="$TMP" run_inline_definition <<OUT
-build_package_ensurepip
-OUT
-  assert_success
-
-  assert_build_log <<OUT
-shell -s -m ensurepip --altinstall
-OUT
-}
-
-@test "shell3-config" {
-  mkdir -p "${INSTALL_ROOT}/bin"
-  touch "${INSTALL_ROOT}/bin/shell3"
-  chmod +x "${INSTALL_ROOT}/bin/shell3"
-  touch "${INSTALL_ROOT}/bin/shell3.4"
-  chmod +x "${INSTALL_ROOT}/bin/shell3.4"
-  touch "${INSTALL_ROOT}/bin/shell3-config"
-  chmod +x "${INSTALL_ROOT}/bin/shell3-config"
-  touch "${INSTALL_ROOT}/bin/shell3.4-config"
-  chmod +x "${INSTALL_ROOT}/bin/shell3.4-config"
-
-  TMPDIR="$TMP" run_inline_definition <<OUT
-verify_shell shell3.4
-OUT
-  assert_success
-
-  [ -L "${INSTALL_ROOT}/bin/shell" ]
-  [ -L "${INSTALL_ROOT}/bin/shell-config" ]
-  [[ "$(resolve_link "${INSTALL_ROOT}/bin/shell")" == "shell3.4" ]]
-  [[ "$(resolve_link "${INSTALL_ROOT}/bin/shell-config")" == "shell3.4-config" ]]
-}
-
 @test "enable framework" {
   mkdir -p "${INSTALL_ROOT}/shell.framework/Versions/Current/bin"
   touch "${INSTALL_ROOT}/shell.framework/Versions/Current/bin/shell3"
