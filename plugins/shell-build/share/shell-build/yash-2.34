@@ -1,0 +1,5 @@
+if has_tar_xz_support; then
+  install_package "yash-2.34" "https://osdn.net/projects/yash/downloads/58183/yash-2.34.tar.xz#3a92bb2992662290c90c4ad0acc10cf9336bb5f1b568a4db7b6c2c213ee68083"
+else
+  install_package "yash-2.34" "https://osdn.net/projects/yash/downloads/58183/yash-2.34.tar.gz#5918071ea30c12e403581fd6443fa72c5612c1de10b6dfcb3a33d5fa18c4cca8"
+fi
