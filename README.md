@@ -33,13 +33,11 @@ and modified for the shell.
 * **[Installation](#installation)**
   * [Basic GitHub Checkout](#basic-github-checkout)
     * [Upgrading](#upgrading)
-    * [Homebrew on Mac OS X](#homebrew-on-mac-os-x)
     * [Advanced Configuration](#advanced-configuration)
     * [Uninstalling shell versions](#uninstalling-shell-versions)
 * **[Command Reference](#command-reference)**
 * **[Development](#development)**
-  * [Version History](#version-history)
-  * [License](#license)
+* **[License](#license)**
 
 
 ----
@@ -141,15 +139,6 @@ We'd recommend to install shenv-virtualenv as well if you have some plan to play
 
 ## Installation
 
-If you're on Mac OS X, consider [installing with Homebrew](#homebrew-on-mac-os-x).
-
-
-### The automatic installer
-
-Visit my other project:
-https://github.com/shenv/shenv-installer
-
-
 ### Basic GitHub Checkout
 
 This will get you going with the latest version of shenv and make it
@@ -186,7 +175,7 @@ easy to fork and contribute any changes back upstream.
     to point to `.bashrc`. On such systems you should almost certainly put the abovementioned line
     `eval "$(shenv init -)"` into `.bash_profile`, and **not** into `.bashrc`. Otherwise you
     may observe strange behaviour, such as `shenv` getting into an infinite loop.
-    See [#264](https://github.com/shenv/shenv/issues/264) for details.
+    See [#264](https://github.com/pyenv/pyenv/issues/264) for details.
 
 4. **Restart your shell so the path changes take effect.**
    You can now begin using shenv.
@@ -199,14 +188,14 @@ easy to fork and contribute any changes back upstream.
     $ shenv install bash-4.4.12
     ```
    **NOTE:** If you need to pass configure option to build, please use
-   ```CONFIGURE_OPTS``` environment variable.
+   `CONFIGURE_OPTS` environment variable.
 
    **NOTE:** If you want to use proxy to download, please use `http_proxy` and `https_proxy`
    environment variable.
 
    **NOTE:** If you are having trouble installing a shell version,
    please visit the wiki page about
-   [Common Build Problems](https://github.com/shenv/shenv/wiki/Common-build-problems)
+   [Common Build Problems](https://github.com/shenv/shenv/wiki/Common-build-problems).
 
 
 #### Upgrading
@@ -254,19 +243,6 @@ uninstall from the system.
    perform the shenv package removal. For instance, for Homebrew:
 
         brew uninstall shenv
-
-### Homebrew on Mac OS X
-
-You can also install shenv using the [Homebrew](http://brew.sh)
-package manager for Mac OS X.
-
-    $ brew update
-    $ brew install shenv
-
-
-To upgrade shenv in the future, use `upgrade` instead of `install`.
-
-Then follow the rest of the post-installation steps under [Basic GitHub Checkout](https://github.com/shenv/shenv#basic-github-checkout) above, starting with #3 ("Add `shenv init` to your shell to enable shims and autocompletion").
 
 ### Advanced Configuration
 
@@ -352,6 +328,8 @@ Tests are executed using [Bats](https://github.com/sstephenson/bats):
 Please feel free to submit pull requests and file bugs on the [issue
 tracker](https://github.com/shenv/shenv/issues).
 
+## License
 
-  [shenv-virtualenv]: https://github.com/shenv/shenv-virtualenv#readme
-  [hooks]: https://github.com/shenv/shenv/wiki/Authoring-plugins#shenv-hooks
+Software licensed under [MIT](https://opensource.org/licenses/MIT) license.
+
+[hooks]: https://github.com/shenv/shenv/wiki/Authoring-plugins#shenv-hooks
