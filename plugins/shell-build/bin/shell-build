@@ -741,8 +741,40 @@ build_package_standard() {
 }
 
 build_package_standard_build() {
-  build_package_configure "$@"
-  build_package_make "$@"
+  local package_name="$1"
+
+  if [ "${MAKEOPTS+defined}" ]; then
+    MAKE_OPTS="$MAKEOPTS"
+  elif [ -z "${MAKE_OPTS+defined}" ]; then
+    MAKE_OPTS="-j $(num_cpu_cores)"
+  fi
+
+  # Support YAML_CONFIGURE_OPTS, SHELL_CONFIGURE_OPTS, etc.
+  local package_var_name="$(capitalize "${package_name%%-*}")"
+  local PACKAGE_CONFIGURE="${package_var_name}_CONFIGURE"
+  local PACKAGE_PREFIX_PATH="${package_var_name}_PREFIX_PATH"
+  local PACKAGE_CONFIGURE_OPTS="${package_var_name}_CONFIGURE_OPTS"
+  local PACKAGE_CONFIGURE_OPTS_ARRAY="${package_var_name}_CONFIGURE_OPTS_ARRAY[@]"
+  local PACKAGE_MAKE_OPTS="${package_var_name}_MAKE_OPTS"
+  local PACKAGE_MAKE_OPTS_ARRAY="${package_var_name}_MAKE_OPTS_ARRAY[@]"
+  local PACKAGE_CFLAGS="${package_var_name}_CFLAGS"
+
+  if [ "$package_var_name" = "SHELL" ]; then
+      use_homebrew_readline || use_freebsd_pkg ||true
+  fi
+
+  ( if [ "${CFLAGS+defined}" ] || [ "${!PACKAGE_CFLAGS+defined}" ]; then
+      export CFLAGS="$CFLAGS ${!PACKAGE_CFLAGS}"
+    fi
+    if [ -z "$CC" ] && is_mac -ge 1010; then
+      export CC=clang
+    fi
+    ${!PACKAGE_CONFIGURE:-./configure} --prefix="${!PACKAGE_PREFIX_PATH:-$PREFIX_PATH}" \
+      $CONFIGURE_OPTS ${!PACKAGE_CONFIGURE_OPTS} "${!PACKAGE_CONFIGURE_OPTS_ARRAY}" || return 1
+  ) >&4 2>&1
+
+  { "$MAKE" $MAKE_OPTS ${!PACKAGE_MAKE_OPTS} "${!PACKAGE_MAKE_OPTS_ARRAY}"
+  } >&4 2>&1
 }
 
 build_package_standard_install() {
@@ -794,7 +826,7 @@ build_package_make() {
   local PACKAGE_MAKE_OPTS_ARRAY="${package_var_name}_MAKE_OPTS_ARRAY[@]"
 
   if [ "$package_var_name" = "SHELL" ]; then
-      use_homebrew_readline || use_freebsd_pkg || true
+    use_homebrew_readline || use_freebsd_pkg ||true
   fi
 
   { "$MAKE" $MAKE_OPTS ${!PACKAGE_MAKE_OPTS} "${!PACKAGE_MAKE_OPTS_ARRAY}"
@@ -813,22 +845,21 @@ build_package_make_install() {
   } >&4 2>&1
 }
 
-# FIXME: autogen and build_script do exactly the same thing, except for the script name
-build_package_autogen() {
-  local package_name="$1"
-  local package_var_name="$(capitalize "${package_name%%-*}")"
-  local PACKAGE_AUTOGEN="${package_var_name}_AUTOGEN"
-  { chmod +x ${!PACKAGE_AUTOGEN:-./autogen.sh}
-    ${!PACKAGE_AUTOGEN:-./autogen.sh}
-  } >&4 2>&1
-}
-
+# FIXME: build_script and autogen do the same thing, just with a different script name
 build_package_build_script() {
   local package_name="$1"
   local package_var_name="$(capitalize "${package_name%%-*}")"
   local PACKAGE_BUILD_SCRIPT="${package_var_name}_BUILD_SCRIPT"
   { chmod +x ${!PACKAGE_BUILD_SCRIPT:-./Build.sh}
     ${!PACKAGE_BUILD_SCRIPT:-./Build.sh}
+  } >&4 2>&1
+}
+
+build_package_autogen() {
+  local package_name="$1"
+  local package_var_name="$(capitalize "${package_name%%-*}")"
+  local PACKAGE_AUTOGEN="${package_var_name}_AUTOGEN"
+  { ${!PACKAGE_AUTOGEN:-./autogen.sh}
   } >&4 2>&1
 }
 
@@ -1193,7 +1224,7 @@ setup_builtin_patches() {
   local package_patch_path="${DEFINITION_PATH%/*}/patches/${DEFINITION_PATH##*/}/${package_name}"
 
   ORIG_HAS_PATCH="$HAS_PATCH"
-# Apply built-in patches if patch was not given from stdin
+  # Apply built-in patches if patch was not given from stdin
   if [ -z "$HAS_PATCH" ] && [ -d "${package_patch_path}" ]; then
     { find "${package_patch_path}" -maxdepth 1 -type f
     } 2>/dev/null | sort | xargs cat 1>"${package_name}.patch"
