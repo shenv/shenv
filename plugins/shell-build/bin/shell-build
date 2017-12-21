@@ -845,7 +845,7 @@ build_package_bin_install() {
   local PACKAGE_BIN="${package_var_name}_BIN"
   { mkdir -p "${PREFIX_PATH}/bin"
     cp ${!PACKAGE_BIN:-${package_name%%-*}} "${PREFIX_PATH}/bin"
-    chmod +x "${PREFIX_PATH}/bin/mksh"
+    chmod +x "${PREFIX_PATH}/bin/${!PACKAGE_BIN:-${package_name%%-*}}"
   }
 }
 
