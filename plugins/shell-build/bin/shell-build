@@ -1486,6 +1486,22 @@ use_freebsd_pkg() {
   fi
 }
 
+has_broken_gcc_bug_55009() {
+  local gcc_version
+  gcc_version="$(gcc --version | head -n1)"
+  gcc_version="${gcc_version##* }"
+  case "${gcc_version}" in
+    1*|2*|3*) return 1 ;;
+    4*)
+      case "${gcc_version:2}" in
+        1*|2*|3*|4*|5*|6*|7*) return 1 ;;
+        *) return 0 ;;
+      esac
+    ;;
+    *) return 0 ;;
+  esac
+}
+
 has_broken_mac_readline() {
   # Mac OS X 10.4 has broken readline.
   # https://github.com/shenv/shenv/issues/23
