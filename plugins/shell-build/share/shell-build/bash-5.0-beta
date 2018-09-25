@@ -1,0 +1,1 @@
+install_package "bash-5.0-beta" "https://ftpmirror.gnu.org/bash/bash-5.0-beta.tar.gz#07f78d50fc007bba37f44056b002765564cadec27d17e74d6f8772a644976160"
