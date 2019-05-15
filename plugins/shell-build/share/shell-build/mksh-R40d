@@ -1,1 +1,0 @@
-install_nightly_package "mksh-R40d" "https://www.mirbsd.org/MirOS/dist/mir/mksh/mksh-R40d.cpio.gz#2df19532a2c4c1cf99dfce4c8b1bca8df65f027c5da1f5d2f561df53567c1057" mksh build_script bin_install

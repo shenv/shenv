@@ -1,1 +1,0 @@
-install_nightly_package "mksh-R41" "https://www.mirbsd.org/MirOS/dist/mir/mksh/mksh-R41.tgz#32522287a9d4daad176dc97d420000a07c0947fdbc853004fc84f02dbdd87c91" mksh build_script bin_install

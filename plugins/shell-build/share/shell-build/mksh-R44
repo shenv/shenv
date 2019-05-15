@@ -1,1 +1,0 @@
-install_nightly_package "mksh-R44" "https://www.mirbsd.org/MirOS/dist/mir/mksh/mksh-R44.tgz#016f2196f75211308f5bf184ead97cf0718039717ad3f499994188bc941f8775" mksh build_script bin_install
