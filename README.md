@@ -320,7 +320,7 @@ The shenv source code is [hosted on
 GitHub](https://github.com/shenv/shenv).  It's clean, modular,
 and easy to understand, even if you're not a shell hacker.
 
-Tests are executed using [Bats](https://github.com/sstephenson/bats):
+Tests are executed using [Bats](https://github.com/bats-core/bats-core):
 
     $ bats test
     $ bats/test/<file>.bats
