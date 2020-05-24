@@ -36,18 +36,6 @@ OUT
   rm -f "${BATS_TEST_DIRNAME}/libexec/shenv-which"
 }
 
-@test "prefix for system in /" {
-  mkdir -p "${BATS_TEST_DIRNAME}/libexec"
-  cat >"${BATS_TEST_DIRNAME}/libexec/shenv-which" <<OUT
-#!/bin/sh
-echo /bin/shell
-OUT
-  chmod +x "${BATS_TEST_DIRNAME}/libexec/shenv-which"
-  SHENV_VERSION="system" run shenv-prefix
-  assert_success "/"
-  rm -f "${BATS_TEST_DIRNAME}/libexec/shenv-which"
-}
-
 @test "prefix for invalid system" {
   PATH="$(path_without shell)" run shenv-prefix system
   assert_failure "shenv: system version not found in PATH"
