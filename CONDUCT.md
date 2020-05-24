@@ -67,9 +67,8 @@ members of the project's leadership.
 
 ## Project Maintainers
 
-* Sam Stephenson <<sstephenson@gmail.com>>
-* Mislav Marohnić <<mislav.marohnic@gmail.com>>
-* Erik Michaels-Ober <<sferik@gmail.com>>
+* Timothée Mazzucotelli <<timothee.mazzucotelli@gmail.com>>
+* Ville Skyttä <<ville.skytta@iki.fi>>
 
 ## Attribution
 
