@@ -9,4 +9,4 @@ test: bats
 	cd plugins/shell-build && $(PWD)/bats/bin/bats $${CI:+--tap} test
 
 bats:
-	git clone --depth 1 https://github.com/bats-core/bats-core.git bats
+	git clone --depth 1 --single-branch --branch v1.2.0 https://github.com/bats-core/bats-core.git bats
