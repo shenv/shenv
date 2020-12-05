@@ -49,7 +49,7 @@ if [ "$versions" = "--unset" ]; then
     echo "set -e SHENV_VERSION"
     ;;
   * )
-    echo 'SHENV_VERSION_OLD="$SHENV_VERSION"'
+    echo 'SHENV_VERSION_OLD="${SHENV_VERSION-}"'
     echo "unset SHENV_VERSION"
     ;;
   esac
@@ -110,7 +110,7 @@ if shenv-prefix "${versions[@]}" >/dev/null; then
       echo "set -gx SHENV_VERSION \"$version\""
       ;;
     * )
-      echo 'SHENV_VERSION_OLD="$SHENV_VERSION"'
+      echo 'SHENV_VERSION_OLD="${SHENV_VERSION-}"'
       echo "export SHENV_VERSION=\"${version}\""
       ;;
     esac
