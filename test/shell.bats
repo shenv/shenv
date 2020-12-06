@@ -36,7 +36,7 @@ load test_helper
   SHENV_SHELL=bash run shenv-sh-shell --unset
   assert_success
   assert_output <<OUT
-SHENV_VERSION_OLD="\$SHENV_VERSION"
+SHENV_VERSION_OLD="\${SHENV_VERSION-}"
 unset SHENV_VERSION
 OUT
 }
@@ -64,7 +64,7 @@ SH
   SHENV_SHELL=bash run shenv-sh-shell 1.2.3
   assert_success
   assert_output <<OUT
-SHENV_VERSION_OLD="\$SHENV_VERSION"
+SHENV_VERSION_OLD="\${SHENV_VERSION-}"
 export SHENV_VERSION="1.2.3"
 OUT
 }
