@@ -85,7 +85,7 @@ OUT
   create_executable "shell" <<SH
 #!$BASH
 if [[ \$1 == "-S"* ]]; then
-  found="\$(PATH="\${SHELLPATH:-\$PATH}" which \$2)"
+  found="\$(PATH="\${SHELLPATH:-\$PATH}" command -v \$2)"
   # assert that the found executable has shell for shebang
   if head -1 "\$found" | grep shell >/dev/null; then
     \$BASH "\$found"
