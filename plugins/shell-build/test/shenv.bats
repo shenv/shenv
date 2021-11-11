@@ -183,7 +183,7 @@ OUT
 }
 
 @test "shenv-install has usage help preface" {
-  run head "$(which shenv-install)"
+  run head "$(command -v shenv-install)"
   assert_output_contains 'Usage: shenv install'
 }
 
@@ -212,6 +212,6 @@ OUT
 }
 
 @test "shenv-uninstall has usage help preface" {
-  run head "$(which shenv-uninstall)"
+  run head "$(command -v shenv-uninstall)"
   assert_output_contains 'Usage: shenv uninstall'
 }
