@@ -1,0 +1,1 @@
+install_package "bash-5.2-alpha" "https://ftp.gnu.org/pub/gnu/bash/bash-5.2-alpha.tar.gz#5da1ce90054f17fde5f9b15d56581be55b51be28d0f9cd8b36a776db4f4af006"
