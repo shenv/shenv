@@ -41,7 +41,7 @@ for script in "${scripts[@]}"; do
 done
 
 shift 1
-# Cshell's `sys.executable` requires the `SHENV_BIN_PATH` to be at the top of the `PATH`.
-# https://github.com/shenv/shenv/issues/98
-export PATH="${SHENV_BIN_PATH}:${PATH}"
+if [ "$SHENV_VERSION" != "system" ]; then
+  export PATH="${SHENV_BIN_PATH}:${PATH}"
+fi
 exec -a "$SHENV_COMMAND" "$SHENV_COMMAND_PATH" "$@"
