@@ -1,5 +1,3 @@
-install_package "openssl-1.0.2k" "https://www.openssl.org/source/openssl-1.0.2k.tar.gz#6b3977c61f2aedf0f96367dcfb5c6e578cf37e7b8d913b4ecb6643c3cb88d8c0" mac_openssl --if has_broken_mac_openssl
-install_package "readline-6.3" "https://ftpmirror.gnu.org/readline/readline-6.3.tar.gz#56ba6071b9462f980c5a72ab0023893b65ba6debb4eeb475d7a563dc65cafd43" standard --if has_broken_mac_readline
 if has_tar_xz_support; then
   install_package "zsh-5.1" "https://sourceforge.net/projects/zsh/files/zsh/5.1/zsh-5.1.tar.xz#c3a654fa0ef26cb1a3228c9257101870e72899fde1cd815388b1b2cbbdfa59b4"
 else
