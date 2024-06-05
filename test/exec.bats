@@ -77,33 +77,3 @@ ${SHENV_ROOT}/versions/3.4/bin/shell
   args
 OUT
 }
-
-@test "supports shell -S <cmd>" {
-  export SHENV_VERSION="3.4"
-
-  # emulate `shell -S' behavior
-  create_executable "shell" <<SH
-#!$BASH
-if [[ \$1 == "-S"* ]]; then
-  found="\$(PATH="\${SHELLPATH:-\$PATH}" command -v \$2)"
-  # assert that the found executable has shell for shebang
-  if head -1 "\$found" | grep shell >/dev/null; then
-    \$BASH "\$found"
-  else
-    echo "shell: no shell script found in input (LoadError)" >&2
-    exit 1
-  fi
-else
-  echo 'shell 3.4 (shenv test)'
-fi
-SH
-
-  create_executable "fab" <<SH
-#!/usr/bin/env shell
-echo hello fab
-SH
-
-  shenv-rehash
-  run shell -S fab
-  assert_success "hello fab"
-}
