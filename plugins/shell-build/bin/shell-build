@@ -667,6 +667,22 @@ build_package() {
   done
 }
 
+is_shell_package() {
+  local definition_prefix="${DEFINITION_PATH##*/}"
+  definition_prefix="${definition_prefix%%-*}"
+
+  case "$1" in
+  "${definition_prefix}"-*) return 0 ;;
+  esac
+
+  # Inline definitions have no shell-specific filename, so recognize the
+  # shell families bundled with shenv as well.
+  case "${1%%-*}" in
+  bash | dash | fish | mksh | yash | zsh ) return 0 ;;
+  esac
+  return 1
+}
+
 package_option() {
   local package_name="$1"
   local command_name="$2"
@@ -712,7 +728,7 @@ build_package_standard_build() {
     MAKE_OPTS="-j $(num_cpu_cores)"
   fi
 
-  # Support YAML_CONFIGURE_OPTS, SHELL_CONFIGURE_OPTS, etc.
+  # Support package-specific options and SHELL_* options for the shell itself.
   local package_var_name="$(capitalize "${package_name%%-*}")"
   local PACKAGE_CONFIGURE="${package_var_name}_CONFIGURE"
   local PACKAGE_PREFIX_PATH="${package_var_name}_PREFIX_PATH"
@@ -722,7 +738,15 @@ build_package_standard_build() {
   local PACKAGE_MAKE_OPTS_ARRAY="${package_var_name}_MAKE_OPTS_ARRAY[@]"
   local PACKAGE_CFLAGS="${package_var_name}_CFLAGS"
 
-  if [ "$package_var_name" = "SHELL" ]; then
+  if is_shell_package "$package_name"; then
+    package_var_name="SHELL"
+    PACKAGE_CONFIGURE="${package_var_name}_CONFIGURE"
+    PACKAGE_PREFIX_PATH="${package_var_name}_PREFIX_PATH"
+    PACKAGE_CONFIGURE_OPTS="${package_var_name}_CONFIGURE_OPTS"
+    PACKAGE_CONFIGURE_OPTS_ARRAY="${package_var_name}_CONFIGURE_OPTS_ARRAY[@]"
+    PACKAGE_MAKE_OPTS="${package_var_name}_MAKE_OPTS"
+    PACKAGE_MAKE_OPTS_ARRAY="${package_var_name}_MAKE_OPTS_ARRAY[@]"
+    PACKAGE_CFLAGS="${package_var_name}_CFLAGS"
     use_homebrew_readline || true
   fi
 
@@ -747,13 +771,22 @@ build_package_standard_install() {
 build_package_configure() {
   local package_name="$1"
 
-  # Support YAML_CONFIGURE_OPTS, SHELL_CONFIGURE_OPTS, etc.
+  # Support package-specific options and SHELL_* options for the shell itself.
   local package_var_name="$(capitalize "${package_name%%-*}")"
   local PACKAGE_CONFIGURE="${package_var_name}_CONFIGURE"
   local PACKAGE_PREFIX_PATH="${package_var_name}_PREFIX_PATH"
   local PACKAGE_CONFIGURE_OPTS="${package_var_name}_CONFIGURE_OPTS"
   local PACKAGE_CONFIGURE_OPTS_ARRAY="${package_var_name}_CONFIGURE_OPTS_ARRAY[@]"
   local PACKAGE_CFLAGS="${package_var_name}_CFLAGS"
+
+  if is_shell_package "$package_name"; then
+    package_var_name="SHELL"
+    PACKAGE_CONFIGURE="${package_var_name}_CONFIGURE"
+    PACKAGE_PREFIX_PATH="${package_var_name}_PREFIX_PATH"
+    PACKAGE_CONFIGURE_OPTS="${package_var_name}_CONFIGURE_OPTS"
+    PACKAGE_CONFIGURE_OPTS_ARRAY="${package_var_name}_CONFIGURE_OPTS_ARRAY[@]"
+    PACKAGE_CFLAGS="${package_var_name}_CFLAGS"
+  fi
 
   ( if [ "${CFLAGS+defined}" ] || [ "${!PACKAGE_CFLAGS+defined}" ]; then
       export CFLAGS="$CFLAGS ${!PACKAGE_CFLAGS}"
@@ -775,12 +808,15 @@ build_package_make() {
     MAKE_OPTS="-j $(num_cpu_cores)"
   fi
 
-  # Support YAML_CONFIGURE_OPTS, SHELL_CONFIGURE_OPTS, etc.
+  # Support package-specific options and SHELL_* options for the shell itself.
   local package_var_name="$(capitalize "${package_name%%-*}")"
   local PACKAGE_MAKE_OPTS="${package_var_name}_MAKE_OPTS"
   local PACKAGE_MAKE_OPTS_ARRAY="${package_var_name}_MAKE_OPTS_ARRAY[@]"
 
-  if [ "$package_var_name" = "SHELL" ]; then
+  if is_shell_package "$package_name"; then
+    package_var_name="SHELL"
+    PACKAGE_MAKE_OPTS="${package_var_name}_MAKE_OPTS"
+    PACKAGE_MAKE_OPTS_ARRAY="${package_var_name}_MAKE_OPTS_ARRAY[@]"
     use_homebrew_readline || true
   fi
 
@@ -791,6 +827,8 @@ build_package_make() {
 build_package_make_install() {
   local package_name="$1"
   local package_var_name="$(capitalize "${package_name%%-*}")"
+
+  is_shell_package "$package_name" && package_var_name="SHELL"
 
   local PACKAGE_MAKE_INSTALL_OPTS="${package_var_name}_MAKE_INSTALL_OPTS"
   local PACKAGE_MAKE_INSTALL_OPTS_ARRAY="${package_var_name}_MAKE_INSTALL_OPTS_ARRAY[@]"
@@ -1125,72 +1163,14 @@ build_package_enable_shared() {
 
 apply_shell_patch() {
   local patchfile
-  case "$1" in
-  shell-* )
-    patchfile="$(mktemp "${TMP}/shell-patch.XXXXXX")"
-    cat "${2:--}" >"$patchfile"
+  is_shell_package "$1" || return 0
 
-    local striplevel=0
-    grep -q '^diff --git a/' "$patchfile" && striplevel=1
-    patch -p$striplevel --force -i "$patchfile"
-    ;;
-  esac
-}
+  patchfile="$(mktemp "${TMP}/shell-patch.XXXXXX")"
+  cat "${2:--}" >"$patchfile"
 
-build_package_symlink_version_suffix() {
-  if [[ "$SHELL_CONFIGURE_OPTS" == *"--enable-framework"* ]]; then
-    if [ -e "${PREFIX_PATH}/bin" ]; then
-      # Always create `bin` as symlink to framework path if the version was built with `--enable-frameowrk` (#590)
-      rm -rf "${PREFIX_PATH}/bin.orig"
-      mv -f "${PREFIX_PATH}/bin" "${PREFIX_PATH}/bin.orig"
-    fi
-    # Only symlinks are installed in ${PREFIX_PATH}/bin
-    ln -fs "${PREFIX_PATH}/shell.framework/Versions/Current/bin" "${PREFIX_PATH}/bin"
-  fi
-
-  # Not create symlinks on `altinstall` (#255)
-  if [[ "$SHELL_MAKE_INSTALL_TARGET" != *"altinstall"* ]]; then
-    shopt -s nullglob
-    local version_bin="$(ls -1 "${PREFIX_PATH}/bin/shell"* | grep '[0-9]$' | sort | tail -1)"
-    suffix="$(basename "${version_bin}" | sed -e 's/^shell//')"
-    if [ -n "${suffix}" ]; then
-      local file link
-      for file in "${PREFIX_PATH}/bin"/*; do
-        unset link
-        case "${file}" in
-        */"shell${suffix}-config" )
-          # Symlink `shellX.Y-config` to `shell-config` if `shell-config` is missing (#296)
-          link="${file%/*}/shell-config"
-        ;;
-        */*"-${suffix}" )
-          link="${file%%-${suffix}}"
-        ;;
-        */*"${suffix}" )
-          link="${file%%${suffix}}"
-        ;;
-        esac
-        if [ -n "$link" ] && [ ! -e "$link" ]; then
-          ( cd "${file%/*}" && ln -fs "${file##*/}" "${link##*/}" )
-        fi
-      done
-    fi
-    shopt -u nullglob
-  fi
-}
-
-verify_shell() {
-  build_package_symlink_version_suffix
-
-  if [ ! -x "${SHELL_BIN}" ]; then
-    { colorize 1 "ERROR"
-      echo ": invalid shell executable: ${SHELL_BIN}"
-      echo
-      echo "The shell-build script could not find proper executable of shell after successful build."
-      echo "Please open an issue for future improvements."
-      echo "https://github.com/shenv/shenv/issues"
-      return 1
-    } >&3
-  fi
+  local striplevel=0
+  grep -q '^diff --git a/' "$patchfile" && striplevel=1
+  patch -p$striplevel --force -i "$patchfile"
 }
 
 version() {
@@ -1364,74 +1344,11 @@ if [[ "$CONFIGURE_OPTS" == *"--enable-shared"* ]] || [[ "$SHELL_CONFIGURE_OPTS" 
   fi
 fi
 
-# Add support for framework installation (`--enable-framework`) of Cshell (#55, #99)
-if [[ "$SHELL_CONFIGURE_OPTS" == *"--enable-framework"* ]]; then
-  if ! is_mac; then
-    echo "shell-build: framework installation is not supported." >&2
-    exit 1
-  fi
-  create_framework_dirs() {
-    local version="$(echo "$1" | sed -E 's/^[^0-9]*([0-9]+\.[0-9]+).*$/\1/')"
-    mkdir -p "${PREFIX_PATH}/shell.framework/Versions/${version}"
-    ( cd "${PREFIX_PATH}/shell.framework/Versions" && ln -fs "${version}" "Current")
-    local path
-    for path in include lib share; do
-      mkdir -p "${PREFIX_PATH}/shell.framework/Versions/Current/${path}"
-      ln -fs "${PREFIX_PATH}/shell.framework/Versions/Current/${path}" "${PREFIX_PATH}/${path}"
-    done
-  }
-  create_framework_dirs "${DEFINITION_PATH##*/}"
-  package_option shell configure --enable-framework="${PREFIX_PATH}"
-fi
-
-# Build against universal SDK (#219, #220)
-if [[ "$SHELL_CONFIGURE_OPTS" == *"--enable-universalsdk"* ]]; then
-  if ! is_mac; then
-    echo "shell-build: universal installation is not supported." >&2
-    exit 1
-  fi
-  package_option shell configure --enable-universalsdk=/ --with-universal-archs=intel
-fi
-
-# Compile with `--enable-unicode=ucs4` by default (#257)
-# if [[ "$SHELL_CONFIGURE_OPTS" != *"--enable-unicode="* ]]; then
-#   if ! is_mac; then
-#     # Skip specifying `--enable-unicode` for Cshell 3.3+ (#912)
-#     case "${DEFINITION_PATH##*/}" in
-#     "2."* | \
-#     "3.0" | "3.0."* | "3.0-"* | \
-#     "3.1" | "3.1."* | "3.1-"* | \
-#     "3.2" | "3.2."* | "3.2-"* )
-#       package_option shell configure --enable-unicode=ucs4
-#       ;;
-#     esac
-#   fi
-# fi
-
 # SSL Certificate error with older wget that does not support Server Name Indication (#60)
 if ! command -v curl 1>/dev/null 2>&1 && [[ "$(wget --version 2>/dev/null || true)" = "GNU Wget 1.1"[0-3]* ]]; then
   echo "shell-build: wget (< 1.14) doesn't support Server Name Indication. Please install curl (>= 7.18.1) and try again" >&2
   exit 1
 fi
-
-# Unset `PIP_REQUIRE_VENV` during build (#216)
-# unset PIP_REQUIRE_VENV
-# unset PIP_REQUIRE_VIRTUALENV
-
-# pydistutils.cfg may corrupt install location of shell libraries (#35, #111)
-# if [ -e "$HOME/.pydistutils.cfg" ]; then
-#   { colorize 1 "WARNING"
-#     echo ": Please make sure you remove any previous custom paths from your $HOME/.pydistutils.cfg file."
-#   } >&2
-# fi
-
-# Download specified version of ez_setup.py/get-pip.py (#202)
-# if [ -n "${SETUPTOOLS_VERSION}" ]; then
-#   EZ_SETUP_URL="https://bitbucket.org/pypa/setuptools/raw/${SETUPTOOLS_VERSION}/ez_setup.py"
-# fi
-# if [ -n "${PIP_VERSION}" ]; then
-#   GET_PIP_URL="https://raw.githubusercontent.com/pypa/pip/${PIP_VERSION}/contrib/get-pip.py"
-# fi
 
 # Set MACOSX_DEPLOYMENT_TARGET from the product version of OS X (#219, #220)
 if is_mac; then
@@ -1444,31 +1361,8 @@ if is_mac; then
   fi
 fi
 
-shell_bin_suffix() {
-  local version_name version_info
-  case "$1" in
-  2.* | 3.* )
-    version_name="$1"
-    version_name="${version_name%-dev}"
-    version_name="${version_name%-rc*}"
-    version_name="${version_name%rc*}"
-    version_info=(${version_name//./ })
-    echo "${version_info[0]}.${version_info[1]}"
-    ;;
-  stackless-2.* | stackless-3.* )
-    version_name="${1#stackless-}"
-    version_name="${version_name%-dev}"
-    version_name="${version_name%-rc*}"
-    version_name="${version_name%rc*}"
-    version_info=(${version_name//./ })
-    echo "${version_info[0]}.${version_info[1]}"
-    ;;
-  esac
-}
-
 SEED="$(date "+%Y%m%d%H%M%S").$$"
 LOG_PATH="${TMP}/shell-build.${SEED}.log"
-SHELL_BIN="${PREFIX_PATH}/bin/shell$(shell_bin_suffix "${DEFINITION_PATH##*/}")"
 CWD="$(pwd)"
 
 if [ -z "$SHELL_BUILD_BUILD_PATH" ]; then

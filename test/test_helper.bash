@@ -6,15 +6,6 @@ if [ -z "$SHENV_TEST_DIR" ]; then
   SHENV_TEST_DIR="${BATS_TMPDIR}/shenv"
   export SHENV_TEST_DIR="$(mktemp -d "${SHENV_TEST_DIR}.XXX" 2>/dev/null || echo "$SHENV_TEST_DIR")"
 
-  if enable -f "${BATS_TEST_DIRNAME}"/../libexec/shenv-realpath.dylib realpath 2>/dev/null; then
-    export SHENV_TEST_DIR="$(realpath "$SHENV_TEST_DIR")"
-  else
-    if [ -n "$SHENV_NATIVE_EXT" ]; then
-      echo "shenv: failed to load \`realpath' builtin" >&2
-      exit 1
-    fi
-  fi
-
   export SHENV_ROOT="${SHENV_TEST_DIR}/root"
   export HOME="${SHENV_TEST_DIR}/home"
   export SHENV_HOOK_PATH="${SHENV_ROOT}/shenv.d"

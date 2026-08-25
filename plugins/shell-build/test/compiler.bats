@@ -8,7 +8,7 @@ export -n CC
 export -n SHELL_CONFIGURE_OPTS
 
 @test "require_gcc on OS X 10.9" {
-  # shenv/shenv#1026
+  # rbenv/rbenv#1026
   stub uname false '-s : echo Darwin'
   stub sw_vers '-productVersion : echo 10.9.5'
 
@@ -29,7 +29,7 @@ OUT
 }
 
 @test "require_gcc on OS X 10.10" {
-  # shenv/shenv#1026
+  # rbenv/rbenv#1026
   stub uname false '-s : echo Darwin'
   stub sw_vers '-productVersion : echo 10.10'
 
@@ -63,7 +63,7 @@ DEF
   mkdir -p "$INSTALL_ROOT"
   cd "$INSTALL_ROOT"
 
-  # shenv/shenv#1026
+  # rbenv/rbenv#1026
   stub uname false '-s : echo Darwin' false '-s : echo Darwin'
   stub sw_vers '-productVersion : echo 10.10'
 

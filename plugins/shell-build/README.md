@@ -62,7 +62,7 @@ system dependencies for compiling the wanted shell Version (see our [recommendat
 To install a shell version for use with shenv, run `shenv install` with
 exact name of the version you want to install. For example,
 
-    shenv install 2.7.4
+    shenv install bash-4.4
 
 shell versions will be installed into a directory of the same name under
 `~/.shenv/versions`.
@@ -80,7 +80,7 @@ locations.
 Run the `shell-build` command with the exact name of the version you want to
 install and the full path where you want to install it. For example,
 
-    shell-build 2.7.4 ~/local/shell-2.7.4
+    shell-build bash-4.4 ~/local/bash-4.4
 
 To see a list of all available shell versions, run `shell-build --definitions`.
 
@@ -123,9 +123,9 @@ You can set certain environment variables to control the build process.
   GNU make (`gmake`) on some systems.
 * `MAKE_OPTS` (or `MAKEOPTS`) lets you pass additional options to `make`.
 * `MAKE_INSTALL_OPTS` lets you pass additional options to `make install`.
-* `SHELL_CONFIGURE_OPTS` and `SHELL_MAKE_OPTS` and `SHELL_MAKE_INSTALL_OPTS` allow
-  you to specify configure and make options for building Cshell. These variables
-  will be passed to shell only, not any dependent packages (e.g. libyaml).
+* `SHELL_CONFIGURE_OPTS`, `SHELL_MAKE_OPTS`, and `SHELL_MAKE_INSTALL_OPTS` let
+  you specify configure and make options for the selected shell. These variables
+  are not passed to dependent packages (for example, OpenSSL or readline).
 
 ### Applying patches to shell before compiling
 
@@ -137,20 +137,20 @@ Example usage:
 
 ```sh
 # applying a single patch
-$ shenv install --patch 2.7.10 < /path/to/shell.patch
+$ shenv install --patch bash-4.4 < /path/to/bash.patch
 
 # applying a patch from HTTP
-$ shenv install --patch 2.7.10 < <(curl -sSL http://git.io/shell.patch)
+$ shenv install --patch bash-4.4 < <(curl -sSL http://git.io/bash.patch)
 
 # applying multiple patches
-$ cat fix1.patch fix2.patch | shenv install --patch 2.7.10
+$ cat fix1.patch fix2.patch | shenv install --patch bash-4.4
 ```
 
 
 ### Building with `--enable-shared`
 
-You can build Cshell with `--enable-shared` to install a version with
-shared object.
+You can build a shell whose configure script supports `--enable-shared` to install
+shared objects.
 
 If `--enable-shared` was found in `SHELL_CONFIGURE_OPTS` or `CONFIGURE_OPTS`,
 `shell-build` will automatically set `RPATH` to the shenv's prefix directory.
@@ -158,7 +158,7 @@ This means you don't have to set `LD_LIBRARY_PATH` or `DYLD_LIBRARY_PATH` for
 the version(s) installed with `--enable-shared`.
 
 ```sh
-$ env SHELL_CONFIGURE_OPTS="--enable-shared" shenv install 2.7.9
+$ env SHELL_CONFIGURE_OPTS="--enable-shared" shenv install bash-4.4
 ```
 
 ### Checksum verification
@@ -187,7 +187,7 @@ mirror and use official URLs instead. You can force shell-build to bypass the
 mirror by setting the `SHELL_BUILD_SKIP_MIRROR` environment variable.
 
 The official shell-build download mirror is provided by
-[GitHub Pages](http://pyenv.github.io/shells/).
+[GitHub Pages](https://shenv.github.io/shells/).
 
 ### Package download caching
 

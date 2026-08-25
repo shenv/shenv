@@ -12,6 +12,9 @@ setup() {
   mkdir -p "$INSTALL_ROOT"
   stub md5 false
   stub curl false
+
+  # Keep checksum detection from consuming Homebrew stubs on hosts without shasum.
+  stub shasum true
 }
 
 executable() {
@@ -61,7 +64,7 @@ assert_build_log() {
 
 @test "yaml is installed for shell" {
   cached_tarball "yaml-0.1.6"
-  cached_tarball "shell-3.6.2"
+  cached_tarball "bash-4.4"
 
   stub brew false
   stub_make_install
@@ -77,8 +80,8 @@ yaml-0.1.6: CPPFLAGS="-I${TMP}/install/include " LDFLAGS="-L${TMP}/install/lib "
 yaml-0.1.6: --prefix=$INSTALL_ROOT
 make -j 2
 make install
-shell-3.6.2: CPPFLAGS="-I${TMP}/install/include " LDFLAGS="-L${TMP}/install/lib "
-shell-3.6.2: --prefix=$INSTALL_ROOT --libdir=$INSTALL_ROOT/lib
+bash-4.4: CPPFLAGS="-I${TMP}/install/include " LDFLAGS="-L${TMP}/install/lib "
+bash-4.4: --prefix=$INSTALL_ROOT --libdir=$INSTALL_ROOT/lib
 make -j 2
 make install
 OUT
@@ -86,7 +89,7 @@ OUT
 
 @test "apply shell patch before building" {
   cached_tarball "yaml-0.1.6"
-  cached_tarball "shell-3.6.2"
+  cached_tarball "bash-4.4"
 
   stub brew false
   stub_make_install
@@ -105,8 +108,8 @@ yaml-0.1.6: --prefix=$INSTALL_ROOT
 make -j 2
 make install
 patch -p0 --force -i $TMP/shell-patch.XXX
-shell-3.6.2: CPPFLAGS="-I${TMP}/install/include " LDFLAGS="-L${TMP}/install/lib "
-shell-3.6.2: --prefix=$INSTALL_ROOT --libdir=$INSTALL_ROOT/lib
+bash-4.4: CPPFLAGS="-I${TMP}/install/include " LDFLAGS="-L${TMP}/install/lib "
+bash-4.4: --prefix=$INSTALL_ROOT --libdir=$INSTALL_ROOT/lib
 make -j 2
 make install
 OUT
@@ -114,7 +117,7 @@ OUT
 
 @test "apply shell patch from git diff before building" {
   cached_tarball "yaml-0.1.6"
-  cached_tarball "shell-3.6.2"
+  cached_tarball "bash-4.4"
 
   stub brew false
   stub_make_install
@@ -133,23 +136,23 @@ yaml-0.1.6: --prefix=$INSTALL_ROOT
 make -j 2
 make install
 patch -p1 --force -i $TMP/shell-patch.XXX
-shell-3.6.2: CPPFLAGS="-I${TMP}/install/include " LDFLAGS="-L${TMP}/install/lib "
-shell-3.6.2: --prefix=$INSTALL_ROOT --libdir=$INSTALL_ROOT/lib
+bash-4.4: CPPFLAGS="-I${TMP}/install/include " LDFLAGS="-L${TMP}/install/lib "
+bash-4.4: --prefix=$INSTALL_ROOT --libdir=$INSTALL_ROOT/lib
 make -j 2
 make install
 OUT
 }
 
 @test "yaml is linked from Homebrew" {
-  cached_tarball "shell-3.6.2"
+  cached_tarball "bash-4.4"
 
   brew_libdir="$TMP/homebrew-yaml"
   mkdir -p "$brew_libdir"
 
-  # shenv/shenv#1026
+  # rbenv/rbenv#1026
   stub uname false
 
-  stub brew "--prefix openssl : true" "--prefix libyaml : echo '$brew_libdir'" false
+  stub brew "--prefix libyaml : echo '$brew_libdir'" false
   stub_make_install
 
   install_fixture definitions/needs-yaml
@@ -160,27 +163,27 @@ OUT
   unstub make
 
   assert_build_log <<OUT
-shell-3.6.2: CPPFLAGS="-I$brew_libdir/include -I${TMP}/install/include " LDFLAGS="-L$brew_libdir/lib -L${TMP}/install/lib "
-shell-3.6.2: --prefix=$INSTALL_ROOT --libdir=$INSTALL_ROOT/lib
+bash-4.4: CPPFLAGS="-I$brew_libdir/include -I${TMP}/install/include " LDFLAGS="-L$brew_libdir/lib -L${TMP}/install/lib "
+bash-4.4: --prefix=$INSTALL_ROOT --libdir=$INSTALL_ROOT/lib
 make -j 2
 make install
 OUT
 }
 
 @test "readline is linked from Homebrew" {
-  cached_tarball "shell-3.6.2"
+  cached_tarball "bash-4.4"
 
   readline_libdir="$TMP/homebrew-readline"
   mkdir -p "$readline_libdir"
 
-  # shenv/shenv#1026
+  # rbenv/rbenv#1026
   stub uname false
 
-  stub brew "--prefix openssl : true" "--prefix readline : echo '$readline_libdir'"
+  stub brew "--prefix readline : echo '$readline_libdir'"
   stub_make_install
 
   run_inline_definition <<DEF
-install_package "shell-3.6.2" "http://shell.org/ftp/shell/3.6.2/shell-3.6.2.tar.gz"
+install_package "bash-4.4" "https://ftpmirror.gnu.org/bash/bash-4.4.tar.gz"
 DEF
   assert_success
 
@@ -188,30 +191,31 @@ DEF
   unstub make
 
   assert_build_log <<OUT
-shell-3.6.2: CPPFLAGS="-I$readline_libdir/include -I${TMP}/install/include " LDFLAGS="-L$readline_libdir/lib -L${TMP}/install/lib "
-shell-3.6.2: --prefix=$INSTALL_ROOT --libdir=$INSTALL_ROOT/lib
+bash-4.4: CPPFLAGS="-I$readline_libdir/include -I${TMP}/install/include " LDFLAGS="-L$readline_libdir/lib -L${TMP}/install/lib "
+bash-4.4: --prefix=$INSTALL_ROOT --libdir=$INSTALL_ROOT/lib
 make -j 2
 make install
 OUT
 }
 
 @test "readline is not linked from Homebrew when explicitly defined" {
-  cached_tarball "shell-3.6.2"
+  cached_tarball "bash-4.4"
 
   # shell-build
   readline_libdir="$TMP/custom"
   mkdir -p "$readline_libdir/include/readline"
   touch "$readline_libdir/include/readline/rlconf.h"
 
-  # shenv/shenv#1026
+  # rbenv/rbenv#1026
   stub uname false
 
-  stub brew "--prefix openssl : true"
+  # An explicit readline path must not trigger a Homebrew lookup.
+  stub brew
   stub_make_install
 
   export SHELL_CONFIGURE_OPTS="CPPFLAGS=-I$readline_libdir/include LDFLAGS=-L$readline_libdir/lib"
   run_inline_definition <<DEF
-install_package "shell-3.6.2" "http://shell.org/ftp/shell/3.6.2/shell-3.6.2.tar.gz"
+install_package "bash-4.4" "https://ftpmirror.gnu.org/bash/bash-4.4.tar.gz"
 DEF
   assert_success
 
@@ -219,15 +223,15 @@ DEF
   unstub make
 
   assert_build_log <<OUT
-shell-3.6.2: CPPFLAGS="-I${TMP}/install/include " LDFLAGS="-L${TMP}/install/lib "
-shell-3.6.2: --prefix=$INSTALL_ROOT CPPFLAGS=-I$readline_libdir/include LDFLAGS=-L$readline_libdir/lib --libdir=$INSTALL_ROOT/lib
+bash-4.4: CPPFLAGS="-I${TMP}/install/include " LDFLAGS="-L${TMP}/install/lib "
+bash-4.4: --prefix=$INSTALL_ROOT CPPFLAGS=-I$readline_libdir/include LDFLAGS=-L$readline_libdir/lib --libdir=$INSTALL_ROOT/lib
 make -j 2
 make install
 OUT
 }
 
 @test "number of CPU cores defaults to 2" {
-  cached_tarball "shell-3.6.2"
+  cached_tarball "bash-4.4"
 
   # pyenv/pyenv#222
   stub uname '-s : echo Darwin'
@@ -238,7 +242,7 @@ OUT
 
   unset MAKE_OPTS
   run_inline_definition <<DEF
-install_package "shell-3.6.2" "http://shell.org/ftp/shell/3.6.2/shell-3.6.2.tar.gz"
+install_package "bash-4.4" "https://ftpmirror.gnu.org/bash/bash-4.4.tar.gz"
 DEF
   assert_success
 
@@ -246,15 +250,15 @@ DEF
   unstub make
 
   assert_build_log <<OUT
-shell-3.6.2: CPPFLAGS="-I${TMP}/install/include " LDFLAGS="-L${TMP}/install/lib "
-shell-3.6.2: --prefix=$INSTALL_ROOT --libdir=$INSTALL_ROOT/lib
+bash-4.4: CPPFLAGS="-I${TMP}/install/include " LDFLAGS="-L${TMP}/install/lib "
+bash-4.4: --prefix=$INSTALL_ROOT --libdir=$INSTALL_ROOT/lib
 make -j 2
 make install
 OUT
 }
 
 @test "number of CPU cores is detected on Mac" {
-  cached_tarball "shell-3.6.2"
+  cached_tarball "bash-4.4"
 
   # pyenv/pyenv#222
   stub uname '-s : echo Darwin'
@@ -265,7 +269,7 @@ OUT
 
   unset MAKE_OPTS
   run_inline_definition <<DEF
-install_package "shell-3.6.2" "http://shell.org/ftp/shell/3.6.2/shell-3.6.2.tar.gz"
+install_package "bash-4.4" "https://ftpmirror.gnu.org/bash/bash-4.4.tar.gz"
 DEF
   assert_success
 
@@ -274,8 +278,8 @@ DEF
   unstub make
 
   assert_build_log <<OUT
-shell-3.6.2: CPPFLAGS="-I${TMP}/install/include " LDFLAGS="-L${TMP}/install/lib "
-shell-3.6.2: --prefix=$INSTALL_ROOT --libdir=$INSTALL_ROOT/lib
+bash-4.4: CPPFLAGS="-I${TMP}/install/include " LDFLAGS="-L${TMP}/install/lib "
+bash-4.4: --prefix=$INSTALL_ROOT --libdir=$INSTALL_ROOT/lib
 make -j 4
 make install
 OUT
@@ -295,16 +299,16 @@ DEF
 }
 
 @test "setting SHELL_MAKE_INSTALL_OPTS to a multi-word string" {
-  cached_tarball "shell-3.6.2"
+  cached_tarball "bash-4.4"
 
-  # shenv/shenv#1026
+  # rbenv/rbenv#1026
   stub uname false
 
   stub_make_install
 
   export SHELL_MAKE_INSTALL_OPTS="DOGE=\"such wow\""
   run_inline_definition <<DEF
-install_package "shell-3.6.2" "http://shell.org/ftp/shell/3.6.2/shell-3.6.2.tar.gz"
+install_package "bash-4.4" "https://ftpmirror.gnu.org/bash/bash-4.4.tar.gz"
 DEF
   assert_success
 
@@ -312,24 +316,24 @@ DEF
   unstub make
 
   assert_build_log <<OUT
-shell-3.6.2: CPPFLAGS="-I${TMP}/install/include " LDFLAGS="-L${TMP}/install/lib "
-shell-3.6.2: --prefix=$INSTALL_ROOT --libdir=$INSTALL_ROOT/lib
+bash-4.4: CPPFLAGS="-I${TMP}/install/include " LDFLAGS="-L${TMP}/install/lib "
+bash-4.4: --prefix=$INSTALL_ROOT --libdir=$INSTALL_ROOT/lib
 make -j 2
 make install DOGE="such wow"
 OUT
 }
 
 @test "setting MAKE_INSTALL_OPTS to a multi-word string" {
-  cached_tarball "shell-3.6.2"
+  cached_tarball "bash-4.4"
 
-  # shenv/shenv#1026
+  # rbenv/rbenv#1026
   stub uname false
 
   stub_make_install
 
   export MAKE_INSTALL_OPTS="DOGE=\"such wow\""
   run_inline_definition <<DEF
-install_package "shell-3.6.2" "http://shell.org/ftp/shell/3.6.2/shell-3.6.2.tar.gz"
+install_package "bash-4.4" "https://ftpmirror.gnu.org/bash/bash-4.4.tar.gz"
 DEF
   assert_success
 
@@ -337,8 +341,8 @@ DEF
   unstub make
 
   assert_build_log <<OUT
-shell-3.6.2: CPPFLAGS="-I${TMP}/install/include " LDFLAGS="-L${TMP}/install/lib "
-shell-3.6.2: --prefix=$INSTALL_ROOT --libdir=$INSTALL_ROOT/lib
+bash-4.4: CPPFLAGS="-I${TMP}/install/include " LDFLAGS="-L${TMP}/install/lib "
+bash-4.4: --prefix=$INSTALL_ROOT --libdir=$INSTALL_ROOT/lib
 make -j 2
 make install DOGE="such wow"
 OUT
@@ -354,7 +358,7 @@ OUT
 }
 
 @test "make on FreeBSD 9 defaults to gmake" {
-  cached_tarball "shell-3.6.2"
+  cached_tarball "bash-4.4"
 
   stub uname "-s : echo FreeBSD" "-r : echo 9.1" false
 
@@ -368,7 +372,7 @@ OUT
 }
 
 @test "make on FreeBSD 10" {
-  cached_tarball "shell-3.6.2"
+  cached_tarball "bash-4.4"
 
   stub uname "-s : echo FreeBSD" "-r : echo 10.0-RELEASE" false
 
@@ -381,7 +385,7 @@ OUT
 }
 
 @test "make on FreeBSD 11" {
-  cached_tarball "shell-3.6.2"
+  cached_tarball "bash-4.4"
 
   stub uname "-s : echo FreeBSD" "-r : echo 11.0-RELEASE" false
 
@@ -394,7 +398,7 @@ OUT
 }
 
 @test "can use SHELL_CONFIGURE to apply a patch" {
-  cached_tarball "shell-3.6.2"
+  cached_tarball "bash-4.4"
 
   executable "${TMP}/custom-configure" <<CONF
 #!$BASH
@@ -409,7 +413,7 @@ CONF
 
   export SHELL_CONFIGURE="${TMP}/custom-configure"
   run_inline_definition <<DEF
-install_package "shell-3.6.2" "http://shell.org/ftp/shell/3.6.2/shell-3.6.2.tar.gz"
+install_package "bash-4.4" "https://ftpmirror.gnu.org/bash/bash-4.4.tar.gz"
 DEF
   assert_success
 
@@ -419,8 +423,8 @@ DEF
 
   assert_build_log <<OUT
 apply -p1 -i /my/patch.diff
-shell-3.6.2: CPPFLAGS="-I${TMP}/install/include " LDFLAGS="-L${TMP}/install/lib "
-shell-3.6.2: --prefix=$INSTALL_ROOT --libdir=$INSTALL_ROOT/lib
+bash-4.4: CPPFLAGS="-I${TMP}/install/include " LDFLAGS="-L${TMP}/install/lib "
+bash-4.4: --prefix=$INSTALL_ROOT --libdir=$INSTALL_ROOT/lib
 make -j 2
 make install
 OUT
@@ -461,11 +465,11 @@ OUT
 }
 
 @test "initializes LDFLAGS directories" {
-  cached_tarball "shell-3.6.2"
+  cached_tarball "bash-4.4"
 
   export LDFLAGS="-L ${BATS_TEST_DIRNAME}/what/evs"
   run_inline_definition <<DEF
-install_package "shell-3.6.2" "http://shell.org/ftp/shell/3.6.2/shell-3.6.2.tar.gz" ldflags_dirs
+install_package "bash-4.4" "https://ftpmirror.gnu.org/bash/bash-4.4.tar.gz" ldflags_dirs
 DEF
   assert_success
 

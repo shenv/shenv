@@ -176,27 +176,6 @@ if [ -z "${SHELL_BUILD_CACHE_PATH}" ] && [ -d "${SHENV_ROOT}/cache" ]; then
   export SHELL_BUILD_CACHE_PATH="${SHENV_ROOT}/cache"
 fi
 
-if [ -z "${SHENV_BOOTSTRAP_VERSION}" ]; then
-  case "${VERSION_NAME}" in
-  [23]"."* )
-    # Default SHENV_VERSION to the friendly shell version. (The
-    # Cshell installer requires an existing shell installation to run. An
-    # unsatisfied local .shell-version file can cause the installer to
-    # fail.)
-    for version_info in "${VERSION_NAME%-dev}" "${VERSION_NAME%.*}" "${VERSION_NAME%%.*}"; do
-      for version in $(shenv-whence "shell${version_info}" 2>/dev/null || true); do
-        SHENV_BOOTSTRAP_VERSION="${version}"
-        break 2
-      done
-    done
-    ;;
-  esac
-fi
-
-if [ -n "${SHENV_BOOTSTRAP_VERSION}" ]; then
-  export SHENV_VERSION="${SHENV_BOOTSTRAP_VERSION}"
-fi
-
 # Execute `before_install` hooks.
 for hook in "${before_hooks[@]}"; do eval "$hook"; done
 

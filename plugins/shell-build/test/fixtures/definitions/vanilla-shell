@@ -1,1 +1,1 @@
-install_package "shell-3.6.2" "http://shell.org/ftp/shell/3.6.2/shell-3.6.2.tar.gz"
+install_package "bash-4.4" "https://ftpmirror.gnu.org/bash/bash-4.4.tar.gz"

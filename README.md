@@ -1,7 +1,7 @@
 # Simple Shell Version Management: shenv
 
 [![Join the chat at https://gitter.im/shenv/shenv](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/shenv/shenv?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
-[![Build Status](https://travis-ci.org/shenv/shenv.svg?branch=master)](https://travis-ci.org/shenv/shenv)
+[![CI](https://github.com/shenv/shenv/actions/workflows/ci.yml/badge.svg?branch=master)](https://github.com/shenv/shenv/actions/workflows/ci.yml)
 
 shenv lets you easily switch between multiple versions of shell. It's
 simple, unobtrusive, and follows the UNIX tradition of single-purpose
@@ -77,12 +77,12 @@ directory to match every shell command across every installed version
 of shell.
 
 Shims are lightweight executables that simply pass your command along
-to shenv. So with shenv installed, when you run, say, `pip`, your
+to shenv. So with shenv installed, when you run, say, `bash`, your
 operating system will do the following:
 
-* Search your `PATH` for an executable file named `pip`
-* Find the shenv shim named `pip` at the beginning of your `PATH`
-* Run the shim named `pip`, which in turn passes the command along to
+* Search your `PATH` for an executable file named `bash`
+* Find the shenv shim named `bash` at the beginning of your `PATH`
+* Run the shim named `bash`, which in turn passes the command along to
   shenv
 
 ### Choosing the shell version
@@ -120,18 +120,13 @@ Each shell version is installed into its own directory under
 
 For example, you might have these versions installed:
 
-* `$(shenv root)/versions/2.7.8/`
-* `$(shenv root)/versions/3.4.2/`
-* `$(shenv root)/versions/pypy-2.4.0/`
+* `$(shenv root)/versions/bash-4.4/`
+* `$(shenv root)/versions/fish-2.7.0/`
+* `$(shenv root)/versions/zsh-5.4.2/`
 
 As far as shenv is concerned, version names are simply the directories in
 `$(shenv root)/versions`.
 
-### Managing Virtual Environments
-
-There is a shenv plugin named [shenv-virtualenv](https://github.com/shenv/shenv-virtualenv) which comes with various features to help shenv users to manage virtual environments created by virtualenv or Anaconda.
-Because the `activate` script of those virtual environments are relying on mutating `$PATH` variable of user's interactive shell, it will intercept shenv's shim style command execution hooks.
-We'd recommend to install shenv-virtualenv as well if you have some plan to play with those virtual environments.
 
 
 ----

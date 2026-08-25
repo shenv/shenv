@@ -106,10 +106,10 @@ shenv-version-name-without-stderr() {
 OUT
 }
 
-@test "version with prefix in name" {
-  create_version "2.7.11"
-  cat > ".shell-version" <<<"shell-2.7.11"
+@test "version with bash prefix in name" {
+  create_version "bash-4.4"
+  cat > ".shell-version" <<<"shell-bash-4.4"
   run shenv-version-name
   assert_success
-  assert_output "2.7.11"
+  assert_output "bash-4.4"
 }

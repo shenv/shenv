@@ -15,8 +15,8 @@ stub_shell_build() {
 @test "install proper" {
   stub_shell_build 'echo shell-build "$@"'
 
-  run shenv-install 3.4.2
-  assert_success "shell-build 3.4.2 ${SHENV_ROOT}/versions/3.4.2"
+  run shenv-install bash-4.4
+  assert_success "shell-build bash-4.4 ${SHENV_ROOT}/versions/bash-4.4"
 
   unstub shell-build
   unstub shenv-hooks
@@ -25,10 +25,10 @@ stub_shell_build() {
 
 @test "install shenv local version by default" {
   stub_shell_build 'echo shell-build "$1"'
-  stub shenv-local 'echo 3.4.2'
+  stub shenv-local 'echo bash-4.4'
 
   run shenv-install
-  assert_success "shell-build 3.4.2"
+  assert_success "shell-build bash-4.4"
 
   unstub shell-build
   unstub shenv-local
@@ -36,16 +36,16 @@ stub_shell_build() {
 
 @test "list available versions" {
   stub_shell_build \
-    "--definitions : echo 2.6.9 2.7.9-rc1 2.7.9-rc2 3.4.2 | tr ' ' $'\\n'"
+    "--definitions : echo bash-4.3 bash-4.4-rc1 bash-4.4-rc2 bash-4.4 | tr ' ' $'\\n'"
 
   run shenv-install --list
   assert_success
   assert_output <<OUT
 Available versions:
-  2.6.9
-  2.7.9-rc1
-  2.7.9-rc2
-  3.4.2
+  bash-4.3
+  bash-4.4-rc1
+  bash-4.4-rc2
+  bash-4.4
 OUT
 
   unstub shell-build
@@ -54,16 +54,16 @@ OUT
 @test "nonexistent version" {
   stub brew false
   stub_shell_build 'echo ERROR >&2 && exit 2' \
-    "--definitions : echo 2.6.9 2.7.9-rc1 2.7.9-rc2 3.4.2 | tr ' ' $'\\n'"
+    "--definitions : echo bash-4.3 bash-4.4-rc1 bash-4.4-rc2 bash-4.4 | tr ' ' $'\\n'"
 
-  run shenv-install 2.7.9
+  run shenv-install bash-4.4-rc
   assert_failure
   assert_output <<OUT
 ERROR
 
-The following versions contain \`2.7.9' in the name:
-  2.7.9-rc1
-  2.7.9-rc2
+The following versions contain \`bash-4.4-rc' in the name:
+  bash-4.4-rc1
+  bash-4.4-rc2
 
 See all available versions with \`shenv install --list'.
 
@@ -100,7 +100,7 @@ OUT
   assert [ ! -e "${SHENV_ROOT}/plugins" ]
   stub_shell_build 'echo $SHELL_BUILD_DEFINITIONS'
 
-  run shenv-install 3.4.2
+  run shenv-install bash-4.4
   assert_success ""
 }
 
@@ -109,7 +109,7 @@ OUT
   mkdir -p "${SHENV_ROOT}/plugins/bar/share/shell-build"
   stub_shell_build "echo \$SHELL_BUILD_DEFINITIONS | tr ':' $'\\n'"
 
-  run shenv-install 3.4.2
+  run shenv-install bash-4.4
   assert_success
   assert_output <<OUT
 
@@ -167,7 +167,7 @@ OUT
   stub_shell_build
   stub shenv-help 'install : true'
 
-  run shenv-install 3.4.1 3.4.2
+  run shenv-install bash-4.3 bash-4.4
   assert_failure
   unstub shenv-help
 }
@@ -197,7 +197,7 @@ OUT
 @test "too many arguments for shenv-uninstall" {
   stub shenv-help 'uninstall : true'
 
-  run shenv-uninstall 3.4.1 3.4.2
+  run shenv-uninstall bash-4.3 bash-4.4
   assert_failure
   unstub shenv-help
 }
