@@ -9,6 +9,8 @@ if [ "$FIXTURE_ROOT" != "$BATS_TEST_DIRNAME/fixtures" ]; then
   export PATH
 fi
 
+ORIGINAL_PATH="$PATH"
+
 remove_command_from_path() {
   OLDIFS="${IFS}"
   local cmd="$1"
@@ -39,6 +41,7 @@ ensure_not_found_in_path() {
 }
 
 teardown() {
+  PATH="$ORIGINAL_PATH"
   rm -fr "${TMP:?}"/*
 }
 

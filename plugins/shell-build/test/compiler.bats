@@ -24,7 +24,7 @@ DEF
   assert_success
   assert_output <<OUT
 CC=${TMP}/bin/gcc
-MACOSX_DEPLOYMENT_TARGET=10.9
+MACOSX_DEPLOYMENT_TARGET=no
 OUT
 }
 

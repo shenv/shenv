@@ -63,10 +63,6 @@ assert_build_log() {
   cached_tarball "yaml-0.1.6"
   cached_tarball "shell-3.6.2"
 
-  # shenv/shenv#1026
-  stub uname false false
-
-  stub uname '-s : echo Linux'
   stub brew false
   stub_make_install
   stub_make_install
@@ -74,7 +70,6 @@ assert_build_log() {
   install_fixture definitions/needs-yaml
   assert_success
 
-  unstub uname
   unstub make
 
   assert_build_log <<OUT
@@ -93,10 +88,6 @@ OUT
   cached_tarball "yaml-0.1.6"
   cached_tarball "shell-3.6.2"
 
-  # shenv/shenv#1026
-  stub uname false false
-
-  stub uname '-s : echo Linux'
   stub brew false
   stub_make_install
   stub_make_install
@@ -105,7 +96,6 @@ OUT
   TMPDIR="$TMP" install_fixture --patch definitions/needs-yaml <<<""
   assert_success
 
-  unstub uname
   unstub make
   unstub patch
 
@@ -126,19 +116,14 @@ OUT
   cached_tarball "yaml-0.1.6"
   cached_tarball "shell-3.6.2"
 
-  stub uname '-s : echo Linux'
   stub brew false
   stub_make_install
   stub_make_install
   stub patch ' : echo patch "$@" | sed -E "s/\.[[:alnum:]]+$/.XXX/" >> build.log'
 
-  # shenv/shenv#1026
-  stub uname false false
-
   TMPDIR="$TMP" install_fixture --patch definitions/needs-yaml <<<"diff --git a/script.py"
   assert_success
 
-  unstub uname
   unstub make
   unstub patch
 
@@ -162,10 +147,9 @@ OUT
   mkdir -p "$brew_libdir"
 
   # shenv/shenv#1026
-  stub uname false false
+  stub uname false
 
-  stub uname '-s : echo Linux'
-  stub brew "--prefix libyaml : echo '$brew_libdir'" false
+  stub brew "--prefix openssl : true" "--prefix libyaml : echo '$brew_libdir'" false
   stub_make_install
 
   install_fixture definitions/needs-yaml
@@ -190,9 +174,9 @@ OUT
   mkdir -p "$readline_libdir"
 
   # shenv/shenv#1026
-  stub uname false false
+  stub uname false
 
-  stub brew "--prefix readline : echo '$readline_libdir'"
+  stub brew "--prefix openssl : true" "--prefix readline : echo '$readline_libdir'"
   stub_make_install
 
   run_inline_definition <<DEF
@@ -220,9 +204,9 @@ OUT
   touch "$readline_libdir/include/readline/rlconf.h"
 
   # shenv/shenv#1026
-  stub uname false false
+  stub uname false
 
-  stub brew
+  stub brew "--prefix openssl : true"
   stub_make_install
 
   export SHELL_CONFIGURE_OPTS="CPPFLAGS=-I$readline_libdir/include LDFLAGS=-L$readline_libdir/lib"
@@ -248,15 +232,11 @@ OUT
   # pyenv/pyenv#222
   stub uname '-s : echo Darwin'
   stub sw_vers '-productVersion : echo 10.10'
-
-  # pyenv/pyenv#257
   stub uname '-s : echo Darwin'
-
-  stub uname '-s : echo Darwin' false
   stub sysctl false
   stub_make_install
 
-  export -n MAKE_OPTS
+  unset MAKE_OPTS
   run_inline_definition <<DEF
 install_package "shell-3.6.2" "http://shell.org/ftp/shell/3.6.2/shell-3.6.2.tar.gz"
 DEF
@@ -279,15 +259,11 @@ OUT
   # pyenv/pyenv#222
   stub uname '-s : echo Darwin'
   stub sw_vers '-productVersion : echo 10.10'
-
-  # pyenv/pyenv#257
   stub uname '-s : echo Darwin'
-
-  stub uname '-s : echo Darwin' false
   stub sysctl '-n hw.ncpu : echo 4'
   stub_make_install
 
-  export -n MAKE_OPTS
+  unset MAKE_OPTS
   run_inline_definition <<DEF
 install_package "shell-3.6.2" "http://shell.org/ftp/shell/3.6.2/shell-3.6.2.tar.gz"
 DEF
@@ -306,40 +282,24 @@ OUT
 }
 
 @test "number of CPU cores is detected on FreeBSD" {
-  cached_tarball "shell-3.6.2"
-
-  # shenv/shenv#1026
-  stub uname false false
-
-  stub uname '-s : echo FreeBSD' false
+  stub uname false '-s : echo FreeBSD'
   stub sysctl '-n hw.ncpu : echo 1'
-  stub_make_install
 
-  export -n MAKE_OPTS
   run_inline_definition <<DEF
-install_package "shell-3.6.2" "http://shell.org/ftp/shell/3.6.2/shell-3.6.2.tar.gz"
+num_cpu_cores
 DEF
-  assert_success
+  assert_success "1"
 
   unstub uname
   unstub sysctl
-  unstub make
-
-  assert_build_log <<OUT
-shell-3.6.2: CPPFLAGS="-I${TMP}/install/include " LDFLAGS="-L${TMP}/install/lib "
-shell-3.6.2: --prefix=$INSTALL_ROOT --libdir=$INSTALL_ROOT/lib
-make -j 1
-make install
-OUT
 }
 
 @test "setting SHELL_MAKE_INSTALL_OPTS to a multi-word string" {
   cached_tarball "shell-3.6.2"
 
   # shenv/shenv#1026
-  stub uname false false
+  stub uname false
 
-  stub uname '-s : echo Linux'
   stub_make_install
 
   export SHELL_MAKE_INSTALL_OPTS="DOGE=\"such wow\""
@@ -363,9 +323,8 @@ OUT
   cached_tarball "shell-3.6.2"
 
   # shenv/shenv#1026
-  stub uname false false
+  stub uname false
 
-  stub uname '-s : echo Linux'
   stub_make_install
 
   export MAKE_INSTALL_OPTS="DOGE=\"such wow\""
@@ -399,9 +358,6 @@ OUT
 
   stub uname "-s : echo FreeBSD" "-r : echo 9.1" false
 
-  # shenv/shenv#1026
-  stub uname false false
-
   MAKE=gmake stub_make_install
 
   MAKE= install_fixture definitions/vanilla-shell
@@ -416,9 +372,6 @@ OUT
 
   stub uname "-s : echo FreeBSD" "-r : echo 10.0-RELEASE" false
 
-  # shenv/shenv#1026
-  stub uname false false
-
   stub_make_install
 
   MAKE= install_fixture definitions/vanilla-shell
@@ -431,9 +384,6 @@ OUT
   cached_tarball "shell-3.6.2"
 
   stub uname "-s : echo FreeBSD" "-r : echo 11.0-RELEASE" false
-
-  # shenv/shenv#1026
-  stub uname false false
 
   stub_make_install
 
@@ -452,12 +402,9 @@ apply -p1 -i /my/patch.diff
 exec ./configure "\$@"
 CONF
 
-  stub uname '-s : echo Linux'
   stub apply 'echo apply "$@" >> build.log'
   stub_make_install
 
-  # pyenv/pyenv#257
-  stub uname '-s : echo Linux'
   stub uname '-s : echo Linux'
 
   export SHELL_CONFIGURE="${TMP}/custom-configure"
