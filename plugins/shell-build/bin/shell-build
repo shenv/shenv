@@ -897,11 +897,11 @@ build_package_copy() {
 }
 
 before_install_package() {
-  local stub=1
+  :
 }
 
 after_install_package() {
-  local stub=1
+  :
 }
 
 setup_builtin_patches() {
