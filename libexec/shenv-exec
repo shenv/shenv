@@ -7,11 +7,11 @@
 # Runs an executable by first preparing PATH so that the selected shell
 # version's `bin' directory is at the front.
 #
-# For example, if the currently selected shell version is 2.7.6:
-#   shenv exec pip install -rrequirements.txt
+# For example, if the currently selected shell version is bash-4.4:
+#   shenv exec bash --version
 #
 # is equivalent to:
-#   PATH="$SHENV_ROOT/versions/2.7.6/bin:$PATH" pip install -rrequirements.txt
+#   PATH="$SHENV_ROOT/versions/bash-4.4/bin:$PATH" bash --version
 
 set -e
 [ -n "$SHENV_DEBUG" ] && set -x
@@ -41,7 +41,6 @@ for script in "${scripts[@]}"; do
 done
 
 shift 1
-# Cshell's `sys.executable` requires the `SHENV_BIN_PATH` to be at the top of the `PATH`.
-# https://github.com/shenv/shenv/issues/98
+# Run the selected shell's executable before any system executable of the same name.
 export PATH="${SHENV_BIN_PATH}:${PATH}"
 exec -a "$SHENV_COMMAND" "$SHENV_COMMAND_PATH" "$@"
