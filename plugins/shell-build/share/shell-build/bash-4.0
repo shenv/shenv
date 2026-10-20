@@ -1,1 +1,3 @@
-install_package "bash-4.0" "https://ftpmirror.gnu.org/bash/bash-4.0.tar.gz#9793d394f640a95030c77d5ac989724afe196921956db741bcaf141801c50518"
+# Upstream supports only the current Bash release; these sources predate Bash 5.3.
+# https://lists.gnu.org/archive/html/bug-bash/2023-02/msg00080.html
+install_package "bash-4.0" "https://ftpmirror.gnu.org/bash/bash-4.0.tar.gz#9793d394f640a95030c77d5ac989724afe196921956db741bcaf141801c50518" warn_eol standard

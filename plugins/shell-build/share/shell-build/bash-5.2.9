@@ -1,1 +1,3 @@
-install_package "bash-5.2.9" "https://ftp.gnu.org/pub/gnu/bash/bash-5.2.9.tar.gz#68d978264253bc933d692f1de195e2e5b463a3984dfb4e5504b076865f16b6dd"
+# Upstream supports only the current Bash release; these sources predate Bash 5.3.
+# https://lists.gnu.org/archive/html/bug-bash/2023-02/msg00080.html
+install_package "bash-5.2.9" "https://ftp.gnu.org/pub/gnu/bash/bash-5.2.9.tar.gz#68d978264253bc933d692f1de195e2e5b463a3984dfb4e5504b076865f16b6dd" warn_eol standard

@@ -1,1 +1,3 @@
-install_package "bash-5.0-alpha" "https://ftpmirror.gnu.org/bash/bash-5.0-alpha.tar.gz#b1d7ee726af6d060702b1055bb7e40d82715410ea7459ff9d3ac38a1898daf61"
+# Upstream supports only the current Bash release; these sources predate Bash 5.3.
+# https://lists.gnu.org/archive/html/bug-bash/2023-02/msg00080.html
+install_package "bash-5.0-alpha" "https://ftpmirror.gnu.org/bash/bash-5.0-alpha.tar.gz#b1d7ee726af6d060702b1055bb7e40d82715410ea7459ff9d3ac38a1898daf61" warn_eol standard

@@ -1,1 +1,3 @@
-install_package "bash-3.2.48" "https://ftpmirror.gnu.org/bash/bash-3.2.48.tar.gz#128d281bd5682ba5f6953122915da71976357d7a76490d266c9173b1d0426348"
+# Upstream supports only the current Bash release; these sources predate Bash 5.3.
+# https://lists.gnu.org/archive/html/bug-bash/2023-02/msg00080.html
+install_package "bash-3.2.48" "https://ftpmirror.gnu.org/bash/bash-3.2.48.tar.gz#128d281bd5682ba5f6953122915da71976357d7a76490d266c9173b1d0426348" warn_eol standard

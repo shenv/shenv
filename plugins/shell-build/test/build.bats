@@ -62,6 +62,68 @@ assert_build_log() {
   assert_output
 }
 
+@test "Bash release outside upstream support warns and still builds" {
+  cached_tarball "bash-4.4"
+  stub shasum "echo d86b3392c1202e8ff5a423b302e6284db7f8f435ea9f39b5b1b20fd3ac36dfcb"
+  stub_make_install
+
+  run shell-build "bash-4.4" "$INSTALL_ROOT"
+
+  assert_success
+  assert_output_contains "WARNING: bash-4.4 is past its end of life and is now unsupported."
+  assert_output_contains "It no longer receives bug fixes or critical security updates."
+  unstub make
+  unstub shasum
+
+  # Adding a warning must preserve the default configure, build, and install steps.
+  assert_build_log <<OUT
+bash-4.4: CPPFLAGS="-I${TMP}/install/include " LDFLAGS="-L${TMP}/install/lib "
+bash-4.4: --prefix=$INSTALL_ROOT --libdir=$INSTALL_ROOT/lib
+make -j 2
+make install
+OUT
+}
+
+@test "superseded bundled prerelease warns and still builds" {
+  cached_tarball "bash-5.2-alpha"
+  stub shasum "echo 5da1ce90054f17fde5f9b15d56581be55b51be28d0f9cd8b36a776db4f4af006"
+  stub_make_install
+
+  run shell-build "bash-5.2-alpha" "$INSTALL_ROOT"
+
+  assert_success
+  assert_output_contains "WARNING: bash-5.2-alpha is past its end of life and is now unsupported."
+  unstub make
+  unstub shasum
+}
+
+@test "Bash 5.2 warns after upstream moves support to Bash 5.3" {
+  cached_tarball "bash-5.2.15"
+  stub shasum "echo 13720965b5f4fc3a0d4b61dd37e7565c741da9a5be24edc2ae00182fc1b3588c"
+  stub_make_install
+
+  run shell-build "bash-5.2.15" "$INSTALL_ROOT"
+
+  assert_success
+  assert_output_contains "WARNING: bash-5.2.15 is past its end of life and is now unsupported."
+  unstub make
+  unstub shasum
+}
+
+@test "shell without a verified EOL policy builds without a warning" {
+  # A newer release alone does not establish an upstream end-of-life policy.
+  cached_tarball "fish-2.7.0"
+  stub shasum "echo 3a76b7cae92f9f88863c35c832d2427fb66082f98e92a02203dc900b8fa87bcb"
+  stub_make_install
+
+  run shell-build "fish-2.7.0" "$INSTALL_ROOT"
+
+  assert_success
+  refute grep -q "WARNING:" <<<"$output"
+  unstub make
+  unstub shasum
+}
+
 @test "yaml is installed for shell" {
   cached_tarball "yaml-0.1.6"
   cached_tarball "bash-4.4"

@@ -1,1 +1,3 @@
-install_package "bash-4.3.30" "https://ftpmirror.gnu.org/bash/bash-4.3.30.tar.gz#317881019bbf2262fb814b7dd8e40632d13c3608d2f237800a8828fbb8a640dd"
+# Upstream supports only the current Bash release; these sources predate Bash 5.3.
+# https://lists.gnu.org/archive/html/bug-bash/2023-02/msg00080.html
+install_package "bash-4.3.30" "https://ftpmirror.gnu.org/bash/bash-4.3.30.tar.gz#317881019bbf2262fb814b7dd8e40632d13c3608d2f237800a8828fbb8a640dd" warn_eol standard

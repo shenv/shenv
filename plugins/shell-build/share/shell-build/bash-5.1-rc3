@@ -1,1 +1,3 @@
-install_package "bash-5.1-rc3" "https://ftpmirror.gnu.org/bash/bash-5.1-rc3.tar.gz#b3be7cdb8af9899e034ee691bb08b959c84bc0e314f06dc75ccd2cafbd77bc33"
+# Upstream supports only the current Bash release; these sources predate Bash 5.3.
+# https://lists.gnu.org/archive/html/bug-bash/2023-02/msg00080.html
+install_package "bash-5.1-rc3" "https://ftpmirror.gnu.org/bash/bash-5.1-rc3.tar.gz#b3be7cdb8af9899e034ee691bb08b959c84bc0e314f06dc75ccd2cafbd77bc33" warn_eol standard

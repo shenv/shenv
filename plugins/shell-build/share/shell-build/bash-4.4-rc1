@@ -1,1 +1,3 @@
-install_package "bash-4.4-rc1" "https://ftpmirror.gnu.org/bash/bash-4.4-rc1.tar.gz#54838ce0e9db6a8920d4c9f6563fd74dac45d3d3c14c8df4cf7ceb68a91e244b"
+# Upstream supports only the current Bash release; these sources predate Bash 5.3.
+# https://lists.gnu.org/archive/html/bug-bash/2023-02/msg00080.html
+install_package "bash-4.4-rc1" "https://ftpmirror.gnu.org/bash/bash-4.4-rc1.tar.gz#54838ce0e9db6a8920d4c9f6563fd74dac45d3d3c14c8df4cf7ceb68a91e244b" warn_eol standard
