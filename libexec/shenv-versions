@@ -95,7 +95,7 @@ print_version() {
 }
 
 # Include "system" in the non-bare output, if it exists
-if [ -n "$include_system" ] && SHENV_VERSION=system shenv-which shell >/dev/null 2>&1; then
+if [ -n "$include_system" ] && shenv-prefix system >/dev/null 2>&1; then
   print_version system
 fi
 

@@ -3,9 +3,10 @@
 load test_helper
 
 @test "prefixes" {
+  export SHELL=/bin/zsh
   mkdir -p "${SHENV_TEST_DIR}/bin"
-  touch "${SHENV_TEST_DIR}/bin/shell"
-  chmod +x "${SHENV_TEST_DIR}/bin/shell"
+  touch "${SHENV_TEST_DIR}/bin/zsh"
+  chmod +x "${SHENV_TEST_DIR}/bin/zsh"
   mkdir -p "${SHENV_ROOT}/versions/2.7.10"
   SHENV_VERSION="system:2.7.10" run shenv-prefix
   assert_success "${SHENV_TEST_DIR}:${SHENV_ROOT}/versions/2.7.10"

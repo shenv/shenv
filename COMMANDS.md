@@ -67,8 +67,7 @@ setting the `SHENV_VERSION` environment variable.
 
     $ shenv global bash-4.4.12
 
-The special version name `system` tells shenv to use the system shell
-(detected by searching your `$PATH`).
+The special version name `system` tells shenv to use shell executables from your `$PATH`, excluding shenv's shims. To validate `system` and find its installation prefix, shenv searches for the shell named by `$SHELL`. If `$SHELL` is empty, shenv searches for `sh`.
 
 When run without a version number, `shenv global` reports the
 currently configured global version.

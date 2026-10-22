@@ -12,7 +12,8 @@ setup() {
 }
 
 stub_system_shell() {
-  local stub="${SHENV_TEST_DIR}/bin/shell"
+  export SHELL=/bin/zsh
+  local stub="${SHENV_TEST_DIR}/bin/zsh"
   mkdir -p "$(dirname "$stub")"
   touch "$stub" && chmod +x "$stub"
 }
@@ -25,7 +26,8 @@ stub_system_shell() {
 }
 
 @test "not even system shell available" {
-  PATH="$(path_without shell)" run shenv-versions
+  SHELL=/bin/shenv-nonexistent-shell run shenv-versions
+
   assert_failure
   assert_output "Warning: no shell detected on the system"
 }

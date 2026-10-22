@@ -30,7 +30,9 @@ OLDIFS="$IFS"
 { IFS=:
   for version in ${SHENV_VERSION}; do
     if [ "$version" = "system" ]; then
-      if SHELL_PATH="$(SHENV_VERSION="${version}" shenv-which shell 2>/dev/null)"; then
+      # Resolve the default shell by name so shenv-which can skip shims in PATH.
+      system_shell="${SHELL:-sh}"
+      if SHELL_PATH="$(SHENV_VERSION="${version}" shenv-which "${system_shell##*/}" 2>/dev/null)"; then
         SHENV_PREFIX_PATH="${SHELL_PATH%/bin/*}"
         SHENV_PREFIX_PATH="${SHENV_PREFIX_PATH:-/}"
       else

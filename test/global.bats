@@ -24,6 +24,19 @@ load test_helper
   assert_success "1.2.3"
 }
 
+@test "set system as the global version" {
+  mkdir -p "$SHENV_ROOT"
+
+  SHELL=/bin/sh run shenv-global system
+
+  assert_success
+  assert_equal "system" "$(cat "$SHENV_ROOT/version")"
+
+  run shenv-global
+
+  assert_success "system"
+}
+
 @test "fail setting invalid SHENV_ROOT/version" {
   mkdir -p "$SHENV_ROOT"
   run shenv-global "1.2.3"

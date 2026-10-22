@@ -18,9 +18,35 @@ load test_helper
 
 @test "prefix for system" {
   mkdir -p "${SHENV_TEST_DIR}/bin"
-  touch "${SHENV_TEST_DIR}/bin/shell"
-  chmod +x "${SHENV_TEST_DIR}/bin/shell"
-  SHENV_VERSION="system" run shenv-prefix
+
+  # System shells have their own names, without a generic `shell` executable.
+  for shell_name in bash zsh fish; do
+    touch "${SHENV_TEST_DIR}/bin/${shell_name}"
+    chmod +x "${SHENV_TEST_DIR}/bin/${shell_name}"
+
+    SHELL="/bin/${shell_name}" SHENV_VERSION="system" run shenv-prefix
+
+    assert_success "$SHENV_TEST_DIR"
+  done
+}
+
+@test "prefix for system with empty SHELL" {
+  mkdir -p "${SHENV_TEST_DIR}/bin"
+  touch "${SHENV_TEST_DIR}/bin/sh"
+  chmod +x "${SHENV_TEST_DIR}/bin/sh"
+
+  SHELL= run shenv-prefix system
+
+  assert_success "$SHENV_TEST_DIR"
+}
+
+@test "prefix for system ignores shims" {
+  mkdir -p "${SHENV_TEST_DIR}/bin" "${SHENV_ROOT}/shims"
+  touch "${SHENV_TEST_DIR}/bin/zsh" "${SHENV_ROOT}/shims/zsh"
+  chmod +x "${SHENV_TEST_DIR}/bin/zsh" "${SHENV_ROOT}/shims/zsh"
+
+  SHELL="${SHENV_ROOT}/shims/zsh" run shenv-prefix system
+
   assert_success "$SHENV_TEST_DIR"
 }
 
@@ -28,7 +54,7 @@ load test_helper
   mkdir -p "${BATS_TEST_DIRNAME}/libexec"
   cat >"${BATS_TEST_DIRNAME}/libexec/shenv-which" <<OUT
 #!/bin/sh
-echo /bin/shell
+echo /bin/sh
 OUT
   chmod +x "${BATS_TEST_DIRNAME}/libexec/shenv-which"
   SHENV_VERSION="system" run shenv-prefix
@@ -37,6 +63,7 @@ OUT
 }
 
 @test "prefix for invalid system" {
-  PATH="$(path_without shell)" run shenv-prefix system
+  SHELL=/bin/shenv-nonexistent-shell run shenv-prefix system
+
   assert_failure "shenv: system version not found in PATH"
 }
