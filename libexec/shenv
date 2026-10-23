@@ -62,16 +62,17 @@ if [ -z "${SHENV_DIR}" ]; then
   fi
 fi
 
-if [ -z "${SHENV_DIR}" ]; then
-  SHENV_DIR="$PWD"
-fi
+if [ -n "${SHENV_DIR}" ]; then
+  if [ ! -d "$SHENV_DIR" ] || [ ! -e "$SHENV_DIR" ]; then
+    abort "cannot change working directory to \`$SHENV_DIR'"
+  fi
 
-if [ ! -d "$SHENV_DIR" ] || [ ! -e "$SHENV_DIR" ]; then
-  abort "cannot change working directory to \`$SHENV_DIR'"
+  SHENV_DIR=$(cd "$SHENV_DIR" && echo "$PWD")
+  export SHENV_DIR
+elif [ "$1" != "exec" ]; then
+  # Leave the default unset for exec so child shells search from their current directory.
+  export SHENV_DIR="$PWD"
 fi
-
-SHENV_DIR=$(cd "$SHENV_DIR" && echo "$PWD")
-export SHENV_DIR
 
 
 shopt -s nullglob
